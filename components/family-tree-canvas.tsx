@@ -11,6 +11,7 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LayoutGrid, Plus } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
@@ -59,6 +60,7 @@ export function FamilyTreeCanvas() {
   const setBondEdit = useFamilyStore((s) => s.setBondEdit);
   const openAddRelated = useFamilyStore((s) => s.openAddRelated);
   const openEdit = useFamilyStore((s) => s.openEdit);
+  const router = useRouter();
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -113,6 +115,7 @@ export function FamilyTreeCanvas() {
           source: p.id,
           target: childId,
           sourceHandle: "child",
+          targetHandle: "parent",
           type: "bond",
           data: { kind: "parent-child", label: bondLabel(p, child, "parent-child") },
         });
@@ -242,8 +245,8 @@ export function FamilyTreeCanvas() {
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
             {selectedName
-              ? `Selected ${selectedName}. Double-click to edit. Right-click to add a relative.`
-              : "Double-click to edit details. Right-click to add someone related. Drop onto a person to change a bond."}
+              ? `Selected ${selectedName}. Double-click to open their profile. Right-click to add a relative.`
+              : "Double-click a person for their profile. Right-click to add someone related. Drop onto a person to change a bond."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -288,7 +291,7 @@ export function FamilyTreeCanvas() {
           onNodeDoubleClick={(_, node) => {
             setMenu(null);
             setHover(null);
-            openEdit(node.id);
+            router.push(`/person/${node.id}`);
           }}
           onNodeContextMenu={(event, node) => {
             event.preventDefault();
@@ -336,7 +339,7 @@ export function FamilyTreeCanvas() {
             onClose={() => setMenu(null)}
           />
         )}
-        {hover && (
+        {hover && !menu && (
           <HoverCard
             person={hover.person}
             x={hover.x}

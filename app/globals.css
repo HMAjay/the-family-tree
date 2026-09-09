@@ -198,4 +198,7 @@
 .react-flow__attribution {
   display: none;
 }
+.react-flow__node {
+  overflow: visible !important;
+}
 
