@@ -41,7 +41,25 @@ export function AddPersonDialog() {
   const sorted = useMemo(() => [...people].sort((a, b) => a.name.localeCompare(b.name)), [people]);
 
   const relationChoices = people.length
-    ? (["son", "daughter", "father", "mother", "husband", "wife", "brother", "sister"] as RelationshipType[])
+    ? ([
+        "son",
+        "daughter",
+        "father",
+        "mother",
+        "husband",
+        "wife",
+        "brother",
+        "sister",
+        "grandfather",
+        "grandmother",
+        "grandson",
+        "granddaughter",
+        "uncle",
+        "aunt",
+        "nephew",
+        "niece",
+        "cousin",
+      ] as RelationshipType[])
     : [];
 
   function reset() {

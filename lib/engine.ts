@@ -107,6 +107,32 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
     void child;
   }
 
+  for (const [childId, parents] of [...parentsOf.entries()]) {
+    for (const parentId of parents) {
+      for (const spouseId of spousesOf.get(parentId) ?? []) {
+        if (spouseId === childId) continue;
+        addParent(spouseId, childId);
+      }
+    }
+  }
+
+  for (let pass = 0; pass < 12; pass++) {
+    let changed = false;
+    for (const [id, sibs] of [...siblingsOf.entries()]) {
+      const myParents = [...(parentsOf.get(id) ?? [])];
+      for (const sib of sibs) {
+        if (sib === id) continue;
+        for (const parentId of myParents) {
+          if (parentId === sib) continue;
+          const before = (parentsOf.get(sib) ?? []).length;
+          addParent(parentId, sib);
+          if ((parentsOf.get(sib) ?? []).length > before) changed = true;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+
   for (const [parent, children] of childrenOf) {
     for (let i = 0; i < children.length; i++) {
       for (let j = i + 1; j < children.length; j++) addSibling(children[i], children[j]);
@@ -376,6 +402,10 @@ export function roleOfPersonToSelected(index: GraphIndex, personId: string, sele
   if (siblings.includes(personId)) return word("Brother", "Sister", "Sibling");
   if (parents.includes(personId)) return word("Father", "Mother", "Parent");
   if (children.includes(personId)) return word("Son", "Daughter", "Child");
+  for (const sib of siblings) {
+    if ((index.parentsOf.get(sib) ?? []).includes(personId)) return word("Father", "Mother", "Parent");
+    if ((index.childrenOf.get(sib) ?? []).includes(personId)) return word("Son", "Daughter", "Child");
+  }
 
   for (const p of parents) {
     if ((index.parentsOf.get(p) ?? []).includes(personId)) {
