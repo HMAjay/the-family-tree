@@ -37,7 +37,7 @@ export function BondEdge({
         path={edgePath}
         style={{
           stroke: data?.active ? "#6b1d2a" : "#c4a35a",
-          strokeWidth: data?.active ? 2.8 : data?.kind === "spouse" ? 2 : 1.5,
+          strokeWidth: data?.active ? 4 : data?.kind === "spouse" ? 3.2 : 2.6,
           strokeDasharray: data?.kind === "sibling" ? "5 4" : undefined,
           ...style,
         }}
