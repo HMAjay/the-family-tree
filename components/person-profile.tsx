@@ -12,6 +12,8 @@ import {
   getSpouse,
   lifespan,
 } from "@/lib/engine";
+import { displayPortrait } from "@/lib/portraits";
+import type { Person } from "@/lib/types";
 import { useFamilyStore } from "@/store/family-store";
 
 export function PersonProfile({ id }: { id: string }) {
@@ -45,13 +47,11 @@ export function PersonProfile({ id }: { id: string }) {
       <div className="gold-border overflow-hidden rounded-3xl border bg-card">
         <div className="grid md:grid-cols-[280px_1fr]">
           <div className="h-72 bg-secondary md:h-full">
-            {person.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={person.photo} alt={person.name} className="h-full w-full object-cover" />
-            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={displayPortrait(person)} alt={person.name} className="h-full w-full object-cover" />
           </div>
           <div className="p-8">
-            <h1 className="font-heading text-5xl text-maroon">{person.name}</h1>
+            <h1 className="font-heading text-5xl font-bold text-maroon">{person.name}</h1>
             {lifespan(person) ? <p className="mt-2 text-lg text-muted-foreground">{lifespan(person)}</p> : null}
             {person.biography && <p className="mt-6 max-w-prose text-lg italic">“{person.biography}”</p>}
             <p className="mt-4 text-sm text-muted-foreground">
@@ -95,22 +95,20 @@ export function PersonProfile({ id }: { id: string }) {
   );
 }
 
-function People({ title, list }: { title: string; list: { id: string; name: string; photo?: string }[] }) {
+function People({ title, list }: { title: string; list: Person[] }) {
   if (!list.length) return null;
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-12">
-      <h2 className="font-heading text-3xl text-maroon">{title}</h2>
+      <h2 className="font-heading text-3xl font-bold text-maroon">{title}</h2>
       <div className="ornament-line my-4" />
       <div className="flex flex-wrap gap-3">
         {list.map((p) => (
           <Link key={p.id} href={`/person/${p.id}`} className="gold-border flex items-center gap-3 rounded-full border bg-card pr-4">
             <span className="size-10 overflow-hidden rounded-full bg-secondary">
-              {p.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.photo} alt="" className="h-full w-full object-cover" />
-              ) : null}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={displayPortrait(p)} alt="" className="h-full w-full object-cover" />
             </span>
-            {p.name}
+            <span className="font-heading font-bold text-maroon">{p.name}</span>
           </Link>
         ))}
       </div>

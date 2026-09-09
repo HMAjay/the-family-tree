@@ -5,6 +5,7 @@ import {
   Controls,
   ReactFlow,
   applyNodeChanges,
+  useNodesInitialized,
   useReactFlow,
   type Edge,
   type Node,
@@ -359,6 +360,7 @@ export function FamilyTreeCanvas() {
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           fitView
+          fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
           minZoom={0.05}
           maxZoom={4}
           zoomOnScroll
@@ -448,14 +450,22 @@ export function FamilyTreeCanvas() {
 
 function CenterButton({ arrangeToken }: { arrangeToken: number }) {
   const { fitView } = useReactFlow();
+  const ready = useNodesInitialized();
   useEffect(() => {
-    if (!arrangeToken) return;
-    const t = window.setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 30);
-    return () => window.clearTimeout(t);
-  }, [arrangeToken, fitView]);
+    if (!arrangeToken || !ready) return;
+    const frame = window.requestAnimationFrame(() => {
+      fitView({ padding: 0.28, duration: 450, maxZoom: 1, minZoom: 0.08 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [arrangeToken, fitView, ready]);
   return (
     <div className="absolute top-3 right-3 z-10">
-      <Button size="sm" variant="secondary" className="rounded-full" onClick={() => fitView({ padding: 0.2, duration: 600 })}>
+      <Button
+        size="sm"
+        variant="secondary"
+        className="rounded-full"
+        onClick={() => fitView({ padding: 0.28, duration: 500, maxZoom: 1, minZoom: 0.08 })}
+      >
         Center
       </Button>
     </div>

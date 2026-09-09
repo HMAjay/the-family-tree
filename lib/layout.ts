@@ -210,13 +210,24 @@ function clusterUnits(index: GraphIndex, units: Person[][]): Person[][][] {
   );
 }
 
-function collectUnits(index: GraphIndex, people: Person[], gens: Map<string, number>, placed: Set<string>): Person[][] {
+function hasRecordedParent(index: GraphIndex, id: string) {
+  return (index.parentsOf.get(id) ?? []).some((pid) => index.people.has(pid));
+}
+
+function collectUnits(
+  index: GraphIndex,
+  people: Person[],
+  gens: Map<string, number>,
+  placed: Set<string>,
+  onlyTrueRoots = false
+): Person[][] {
   const units: Person[][] = [];
   const seen = new Set<string>();
   for (const p of people) {
     if (placed.has(p.id) || seen.has(p.id)) continue;
     const unit = coupleOf(index, p, gens);
     if (unit.some((m) => placed.has(m.id))) continue;
+    if (onlyTrueRoots && unit.some((m) => hasRecordedParent(index, m.id))) continue;
     for (const m of unit) seen.add(m.id);
     units.push(unit);
   }
@@ -230,10 +241,10 @@ export function layoutTree(index: GraphIndex): LaidOutNode[] {
   const merged = new Map<string, { x: number; y: number }>();
 
   const roots = [...index.people.values()]
-    .filter((p) => (index.parentsOf.get(p.id) ?? []).filter((id) => index.people.has(id)).length === 0)
+    .filter((p) => !hasRecordedParent(index, p.id))
     .sort((a, b) => personKey(a).localeCompare(personKey(b)));
 
-  const rootUnits = collectUnits(index, roots, gens, placed);
+  const rootUnits = collectUnits(index, roots, gens, placed, true);
   const clusters = clusterUnits(index, rootUnits);
 
   let xOff = 0;

@@ -116,8 +116,16 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
       case "cousin":
       case "grandfather":
       case "grandmother":
+      case "great-grandfather":
+      case "great-grandmother":
       case "grandson":
       case "granddaughter":
+      case "great-grandson":
+      case "great-granddaughter":
+      case "great-uncle":
+      case "great-aunt":
+      case "great-nephew":
+      case "great-niece":
       case "son-in-law":
       case "daughter-in-law":
         delayed.push(rel);
@@ -145,12 +153,46 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
       if (mids.length) {
         for (const mid of mids) addParent(a, mid);
       }
+    } else if (type === "great-grandfather" || type === "great-grandmother") {
+      const grandparents = uniqueIds(
+        (parentsOf.get(b) ?? []).flatMap((p) => parentsOf.get(p) ?? []).filter((id) => peopleMap.has(id))
+      );
+      if (grandparents.length) {
+        for (const gp of grandparents) addParent(a, gp);
+      } else {
+        const mids = (parentsOf.get(b) ?? []).filter((id) => peopleMap.has(id));
+        for (const mid of mids) addParent(a, mid);
+      }
     } else if (type === "grandson" || type === "granddaughter") {
       const kids = (childrenOf.get(b) ?? []).filter((id) => peopleMap.has(id));
       if (kids.length) {
-        for (const kid of kids) addParent(b, kid);
+        for (const kid of kids) addParent(kid, a);
+      }
+    } else if (type === "great-grandson" || type === "great-granddaughter") {
+      const children = (childrenOf.get(b) ?? []).filter((id) => peopleMap.has(id));
+      const grandkids = uniqueIds(children.flatMap((c) => childrenOf.get(c) ?? []).filter((id) => peopleMap.has(id)));
+      if (grandkids.length) {
+        for (const g of grandkids) addParent(g, a);
+      } else if (children.length) {
+        for (const kid of children) addParent(kid, a);
+      }
+    } else if (type === "great-uncle" || type === "great-aunt") {
+      const grandparents = uniqueIds(
+        (parentsOf.get(b) ?? []).flatMap((p) => parentsOf.get(p) ?? []).filter((id) => peopleMap.has(id))
+      );
+      for (const gp of grandparents) addSibling(a, gp);
+    } else if (type === "great-nephew" || type === "great-niece") {
+      const niblings = uniqueIds(
+        (siblingsOf.get(a) ?? []).flatMap((s) => childrenOf.get(s) ?? []).filter((id) => peopleMap.has(id))
+      );
+      if (niblings.length) {
+        for (const n of niblings) addParent(n, b);
       }
     }
+  }
+
+  function uniqueIds(ids: string[]) {
+    return [...new Set(ids)];
   }
 
   const pickChildForInLaw = (parentId: string, inLawId: string, marryGender: Person["gender"] | null) => {
@@ -472,6 +514,59 @@ export function findRelationship(index: GraphIndex, fromId: string, toId: string
   };
 }
 
+function walkDistance(
+  index: GraphIndex,
+  startId: string,
+  targetId: string,
+  next: (id: string) => string[]
+): number | null {
+  const seen = new Set<string>([startId]);
+  let layer = [startId];
+  let depth = 0;
+  while (layer.length && depth < 16) {
+    if (layer.includes(targetId)) return depth;
+    const following: string[] = [];
+    for (const id of layer) {
+      for (const n of next(id)) {
+        if (seen.has(n)) continue;
+        seen.add(n);
+        following.push(n);
+      }
+    }
+    layer = following;
+    depth += 1;
+  }
+  return null;
+}
+
+function ancestorDistance(index: GraphIndex, personId: string, descendantId: string) {
+  return walkDistance(index, descendantId, personId, (id) =>
+    (index.parentsOf.get(id) ?? []).filter((pid) => index.people.has(pid))
+  );
+}
+
+function descendantDistance(index: GraphIndex, personId: string, ancestorId: string) {
+  return walkDistance(index, ancestorId, personId, (id) =>
+    (index.childrenOf.get(id) ?? []).filter((cid) => index.people.has(cid))
+  );
+}
+
+function generationWord(
+  word: (male: string, female: string, other: string) => string,
+  depth: number,
+  up: boolean
+) {
+  const great = depth >= 3 ? "Great-".repeat(depth - 2) : "";
+  if (up) {
+    if (depth === 1) return word("Father", "Mother", "Parent");
+    if (depth === 2) return word("Grandfather", "Grandmother", "Grandparent");
+    return word(`${great}grandfather`, `${great}grandmother`, `${great}grandparent`);
+  }
+  if (depth === 1) return word("Son", "Daughter", "Child");
+  if (depth === 2) return word("Grandson", "Granddaughter", "Grandchild");
+  return word(`${great}grandson`, `${great}granddaughter`, `${great}grandchild`);
+}
+
 function summarizePath(index: GraphIndex, fromId: string, toId: string, steps: PathStep[]) {
   const a = index.people.get(fromId)!;
   const b = index.people.get(toId)!;
@@ -521,6 +616,11 @@ export function roleOfPersonToSelected(index: GraphIndex, personId: string, sele
   if (parents.includes(personId)) return word("Father", "Mother", "Parent");
   if (children.includes(personId)) return word("Son", "Daughter", "Child");
 
+  const up = ancestorDistance(index, personId, selectedId);
+  if (up && up > 0) return generationWord(word, up, true);
+  const down = descendantDistance(index, personId, selectedId);
+  if (down && down > 0) return generationWord(word, down, false);
+
   for (const sib of siblings) {
     if ((index.spousesOf.get(sib) ?? []).includes(personId)) {
       return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
@@ -548,21 +648,24 @@ export function roleOfPersonToSelected(index: GraphIndex, personId: string, sele
     if (parentSiblings.includes(personId)) return word("Uncle", "Aunt", "Parent's sibling");
     for (const sib of parentSiblings) {
       if ((index.spousesOf.get(sib) ?? []).includes(personId)) return word("Uncle", "Aunt", "Aunt or uncle");
-      if ((index.childrenOf.get(sib) ?? []).includes(personId)) return "Cousin";
+      if ((index.childrenOf.get(sib) ?? []).includes(personId) && personId !== p) return "Cousin";
     }
   }
   for (const sib of siblings) {
     if ((index.childrenOf.get(sib) ?? []).includes(personId)) return word("Nephew", "Niece", "Nibling");
-  }
-
-  for (const p of parents) {
-    if ((index.parentsOf.get(p) ?? []).includes(personId)) {
-      return word("Grandfather", "Grandmother", "Grandparent");
+    for (const nibling of index.childrenOf.get(sib) ?? []) {
+      if ((index.childrenOf.get(nibling) ?? []).includes(personId)) {
+        return word("Great-nephew", "Great-niece", "Great-nibling");
+      }
     }
   }
-  for (const c of children) {
-    if ((index.childrenOf.get(c) ?? []).includes(personId)) {
-      return word("Grandson", "Granddaughter", "Grandchild");
+  for (const p of parents) {
+    for (const gp of index.parentsOf.get(p) ?? []) {
+      const gpSiblings = index.siblingsOf.get(gp) ?? [];
+      if (gpSiblings.includes(personId)) return word("Great-uncle", "Great-aunt", "Grandparent's sibling");
+      for (const sib of gpSiblings) {
+        if ((index.spousesOf.get(sib) ?? []).includes(personId)) return word("Great-uncle", "Great-aunt", "Grandparent's sibling");
+      }
     }
   }
 

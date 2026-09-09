@@ -206,9 +206,13 @@ function genderFromBond(type: RelationshipType): Gender {
     "co-brother",
     "son-in-law",
     "grandfather",
+    "great-grandfather",
     "grandson",
+    "great-grandson",
     "uncle",
+    "great-uncle",
     "nephew",
+    "great-nephew",
   ].includes(type)
     ? "male"
     : "female";

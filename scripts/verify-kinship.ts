@@ -12,6 +12,7 @@ function rel(personA: string, type: RelationshipType, personB: string): Relation
 
 const people: Person[] = [
   person("bcc", "Bcc", "male"),
+  person("hs", "HS", "female"),
   person("anu", "Anu", "female"),
   person("vani", "Vani", "female"),
   person("jag", "Jagadeesh", "male"),
@@ -24,6 +25,7 @@ const people: Person[] = [
 ];
 
 const relationships: Relationship[] = [
+  rel("hs", "wife", "bcc"),
   rel("bcc", "father", "vani"),
   rel("bcc", "father", "anu"),
   rel("anu", "sister", "vani"),
@@ -55,6 +57,8 @@ expect(label("vani", "avinash") === "Nephew", `Vani→Avinash should be Nephew, 
 expect(label("avinash", "vani") === "Aunt", `Avinash→Vani should be Aunt, got ${label("avinash", "vani")}`);
 expect(label("avinash", "manju") === "Uncle", `Avinash→Manju should be Uncle, got ${label("avinash", "manju")}`);
 expect(label("avinash", "bcc") === "Grandfather", `Avinash→Bcc should be Grandfather, got ${label("avinash", "bcc")}`);
+expect(label("akshara", "bcc") === "Grandfather", `Akshata→Bcc should be Grandfather, got ${label("akshara", "bcc")}`);
+expect(label("akshara", "hs") === "Grandmother", `Akshata→HS should be Grandmother, got ${label("akshara", "hs")}`);
 expect(label("avinash", "akshara") === "Cousin", `Avinash→Akshara should be Cousin, got ${label("avinash", "akshara")}`);
 expect(label("jag", "manju") === "Co-brother", `Jagadeesh→Manju should be Co-brother, got ${label("jag", "manju")}`);
 
@@ -77,5 +81,15 @@ const kids = ["akshara", "ajay", "akshay"].map((id) => byId.get(id)!);
 const kidMid = (Math.min(...kids.map((k) => k.x)) + Math.max(...kids.map((k) => k.x))) / 2;
 const coupleMid = (vani.x + manju.x) / 2;
 expect(Math.abs(kidMid - coupleMid) < 80, `Children should be centered under Vani & Manju (${kidMid} vs ${coupleMid})`);
+
+const bcc = byId.get("bcc")!;
+const hs = byId.get("hs")!;
+expect(bcc.y === hs.y, "The starting couple should share the top row");
+expect(anu.y > bcc.y, "Daughters should sit below the starting couple");
+const treeMin = Math.min(...layout.map((n) => n.x));
+const treeMax = Math.max(...layout.map((n) => n.x)) + 210;
+const treeMid = (treeMin + treeMax) / 2;
+const rootMid = (Math.min(bcc.x, hs.x) + Math.max(bcc.x, hs.x) + 210) / 2;
+expect(Math.abs(treeMid - rootMid) < 60, `Starting couple should sit at the center of the tree (${rootMid} vs ${treeMid})`);
 
 console.log("kinship and layout checks passed");

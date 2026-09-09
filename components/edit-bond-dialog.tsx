@@ -17,6 +17,14 @@ function invertBond(type: RelationshipType, personGender: "female" | "male" | "o
   if (type === "brother" || type === "sister") return personGender === "female" ? "sister" : "brother";
   if (type === "co-brother" || type === "co-sister") return personGender === "female" ? "co-sister" : "co-brother";
   if (type === "son-in-law" || type === "daughter-in-law") return personGender === "female" ? "mother" : "father";
+  if (type === "grandfather" || type === "grandmother") return personGender === "female" ? "granddaughter" : "grandson";
+  if (type === "grandson" || type === "granddaughter") return personGender === "female" ? "grandmother" : "grandfather";
+  if (type === "great-grandfather" || type === "great-grandmother")
+    return personGender === "female" ? "great-granddaughter" : "great-grandson";
+  if (type === "great-grandson" || type === "great-granddaughter")
+    return personGender === "female" ? "great-grandmother" : "great-grandfather";
+  if (type === "great-uncle" || type === "great-aunt") return personGender === "female" ? "great-niece" : "great-nephew";
+  if (type === "great-nephew" || type === "great-niece") return personGender === "female" ? "great-aunt" : "great-uncle";
   return type;
 }
 

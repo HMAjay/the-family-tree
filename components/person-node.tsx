@@ -4,6 +4,7 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { memo } from "react";
 import { lifespan } from "@/lib/engine";
 import type { Person } from "@/lib/types";
+import { displayPortrait } from "@/lib/portraits";
 import { cn } from "@/lib/utils";
 
 export type PersonNodeData = {
@@ -33,13 +34,11 @@ function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
         )}
       >
         <div className="relative h-32 shrink-0 overflow-hidden bg-secondary">
-          {person.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={person.photo} alt="" className="h-full w-full object-cover" />
-          ) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
-          <p className="font-heading text-xl leading-tight text-maroon">{person.name}</p>
+          <p className="font-heading text-xl font-bold leading-tight text-maroon">{person.name}</p>
           {lifespan(person) ? <p className="text-sm text-muted-foreground">{lifespan(person)}</p> : null}
           {relationLabel ? (
             <p className="mt-auto text-base font-extrabold tracking-wide text-maroon uppercase">{relationLabel}</p>

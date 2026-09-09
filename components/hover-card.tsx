@@ -1,6 +1,7 @@
 "use client";
 
 import { lifespan } from "@/lib/engine";
+import { displayPortrait } from "@/lib/portraits";
 import type { Person } from "@/lib/types";
 
 export function HoverCard({
@@ -22,13 +23,11 @@ export function HoverCard({
       style={{ left, top }}
     >
       <div className="h-24 overflow-hidden bg-secondary">
-        {person.photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={person.photo} alt="" className="h-full w-full object-cover" />
-        ) : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="p-4">
-        <p className="font-heading text-xl text-maroon">{person.name}</p>
+        <p className="font-heading text-xl font-bold text-maroon">{person.name}</p>
         {lifespan(person) ? <p className="text-xs text-muted-foreground">{lifespan(person)}</p> : null}
         <p className="mt-2 text-sm text-gold">{relation}</p>
         {(person.occupation || person.location) && (
