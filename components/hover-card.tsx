@@ -24,7 +24,7 @@ export function HoverCard({
     >
       <div className="h-24 overflow-hidden bg-secondary">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover" />
+        <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover object-top" />
       </div>
       <div className="p-4">
         <p className="font-heading text-xl font-bold text-maroon">{person.name}</p>

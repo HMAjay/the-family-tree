@@ -48,7 +48,7 @@ export function PersonProfile({ id }: { id: string }) {
         <div className="grid md:grid-cols-[280px_1fr]">
           <div className="h-72 bg-secondary md:h-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={displayPortrait(person)} alt={person.name} className="h-full w-full object-cover" />
+            <img src={displayPortrait(person)} alt={person.name} className="h-full w-full object-cover object-top" />
           </div>
           <div className="p-8">
             <h1 className="font-heading text-5xl font-bold text-maroon">{person.name}</h1>

@@ -33,9 +33,9 @@ function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
           dropTarget && "outline outline-[3px] outline-offset-4 outline-dashed outline-gold shadow-[0_0_0_8px_rgba(196,163,90,0.35)]"
         )}
       >
-        <div className="relative h-32 shrink-0 overflow-hidden bg-secondary">
+        <div className="relative h-40 shrink-0 overflow-hidden bg-secondary">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover" />
+          <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover object-top" />
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
           <p className="font-heading text-xl font-bold leading-tight text-maroon">{person.name}</p>
