@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  people    Person[]
+  memories  Memory[]
+  events    FamilyEvent[]
+}
+
+model Person {
+  id           String         @id @default(cuid())
+  familyId     String
+  family       Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name         String
+  nickname     String?
+  gender       String
+  dateOfBirth  DateTime?
+  dateOfDeath  DateTime?
+  photo        String?
+  location     String?
+  occupation   String?
+  biography    String?
+  notes        String?
+  relFrom      Relationship[] @relation("RelA")
+  relTo        Relationship[] @relation("RelB")
+}
+
+model Relationship {
+  id               String   @id @default(cuid())
+  personAId        String
+  personBId        String
+  relationshipType String
+  personA          Person   @relation("RelA", fields: [personAId], references: [id], onDelete: Cascade)
+  personB          Person   @relation("RelB", fields: [personBId], references: [id], onDelete: Cascade)
+
+  @@index([personAId])
+  @@index([personBId])
+}
+
+model Memory {
+  id          String   @id @default(cuid())
+  familyId    String
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  date        DateTime?
+  media       String
+  mediaType   String
+  associatedPeople String[]
+}
+
+model FamilyEvent {
+  id               String   @id @default(cuid())
+  familyId         String
+  family           Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title            String
+  date             DateTime
+  description      String
+  location         String?
+  associatedPeople String[]
+}
