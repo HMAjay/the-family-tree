@@ -354,6 +354,10 @@ export function FamilyTreeCanvas() {
       <div className="relative min-h-0 flex-1" style={{ minHeight: 480 }}>
         <ReactFlow
           className="h-full w-full"
+          defaultEdgeOptions={{
+            type: "bond",
+            style: { strokeWidth: 5, stroke: "#b8892d" },
+          }}
           nodes={displayNodes}
           edges={edges}
           nodeTypes={nodeTypes}

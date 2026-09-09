@@ -22,6 +22,7 @@ export function EditPersonDialog() {
   const [occupation, setOccupation] = useState("");
   const [biography, setBiography] = useState("");
   const [photo, setPhoto] = useState<string | undefined>();
+  const [customPhoto, setCustomPhoto] = useState(false);
 
   useEffect(() => {
     if (!person) return;
@@ -31,7 +32,8 @@ export function EditPersonDialog() {
     setLocation(person.location ?? "");
     setOccupation(person.occupation ?? "");
     setBiography(person.biography ?? "");
-    setPhoto(person.photo);
+    setPhoto(person.customPhoto ? person.photo : undefined);
+    setCustomPhoto(Boolean(person.customPhoto && person.photo));
   }, [person]);
 
   if (!person || typeof document === "undefined") return null;
@@ -49,7 +51,8 @@ export function EditPersonDialog() {
       location: location || undefined,
       occupation: occupation || undefined,
       biography: biography || undefined,
-      photo,
+      photo: customPhoto ? photo : undefined,
+      customPhoto,
     });
     close();
   }
@@ -123,7 +126,10 @@ export function EditPersonDialog() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = () => setPhoto(String(reader.result));
+                reader.onload = () => {
+                  setPhoto(String(reader.result));
+                  setCustomPhoto(true);
+                };
                 reader.readAsDataURL(file);
               }}
             />

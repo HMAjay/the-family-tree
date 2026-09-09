@@ -202,3 +202,13 @@
   overflow: visible !important;
 }
 
+.react-flow__edge-path.family-bond-path,
+.react-flow__edge .family-bond-path {
+  stroke-width: 5px !important;
+  stroke: #b8892d;
+  fill: none;
+}
+.react-flow__edge.selected .family-bond-path {
+  stroke: #6b1d2a;
+}
+

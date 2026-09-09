@@ -9,6 +9,7 @@ import { useFamilyStore } from "@/store/family-store";
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     useFamilyStore.persist.rehydrate();
+    useFamilyStore.getState().applySavedTreeMigration();
     useFamilyStore.getState().setHydrated();
   }, []);
   return (

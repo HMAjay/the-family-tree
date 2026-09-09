@@ -4,7 +4,7 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { memo } from "react";
 import { lifespan } from "@/lib/engine";
 import type { Person } from "@/lib/types";
-import { displayPortrait } from "@/lib/portraits";
+import { PersonAvatar } from "@/components/person-avatar";
 import { cn } from "@/lib/utils";
 
 export type PersonNodeData = {
@@ -33,9 +33,10 @@ function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
           dropTarget && "outline outline-[3px] outline-offset-4 outline-dashed outline-gold shadow-[0_0_0_8px_rgba(196,163,90,0.35)]"
         )}
       >
-        <div className="relative h-40 shrink-0 overflow-hidden bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover object-top" />
+        <div className="flex h-40 shrink-0 items-center justify-center bg-[#efe6d4]">
+          <div className="size-[8.5rem] overflow-hidden rounded-full shadow-inner">
+            <PersonAvatar person={person} />
+          </div>
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
           <p className="font-heading text-xl font-bold leading-tight text-maroon">{person.name}</p>

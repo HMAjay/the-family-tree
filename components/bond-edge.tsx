@@ -1,6 +1,13 @@
 "use client";
 
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, getStraightPath, type Edge, type EdgeProps } from "@xyflow/react";
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  getStraightPath,
+  type Edge,
+  type EdgeProps,
+} from "@xyflow/react";
 
 export type BondKind = "spouse" | "sibling" | "parent-child";
 
@@ -22,24 +29,34 @@ export function BondEdge({
   sourcePosition,
   targetPosition,
   data,
-  style,
 }: EdgeProps<BondFlowEdge>) {
   const straight = data?.kind === "spouse" || data?.kind === "sibling";
   const mostlyLevel = Math.abs(sourceY - targetY) < 48;
-  const [edgePath, labelX, labelY] = straight && mostlyLevel
-    ? getStraightPath({ sourceX, sourceY, targetX, targetY })
-    : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  const [edgePath, labelX, labelY] =
+    straight && mostlyLevel
+      ? getStraightPath({ sourceX, sourceY, targetX, targetY })
+      : getSmoothStepPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+          borderRadius: 18,
+        });
+
+  const strokeWidth = data?.active ? 7 : data?.kind === "spouse" ? 6 : 5;
 
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
+        className="family-bond-path"
         style={{
-          stroke: data?.active ? "#6b1d2a" : "#c4a35a",
-          strokeWidth: data?.active ? 4 : data?.kind === "spouse" ? 3.2 : 2.6,
-          strokeDasharray: data?.kind === "sibling" ? "5 4" : undefined,
-          ...style,
+          stroke: data?.active ? "#6b1d2a" : "#b8892d",
+          strokeWidth,
+          strokeDasharray: data?.kind === "sibling" ? "8 6" : undefined,
         }}
       />
       {data?.showLabel && data.label ? (

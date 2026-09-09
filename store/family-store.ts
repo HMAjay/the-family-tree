@@ -5,7 +5,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { emptyFamily } from "@/lib/empty-family";
 import { hasParentLink, parentIdsFromRelationships } from "@/lib/engine";
-import { makePortrait } from "@/lib/portraits";
 import type { FamilySnapshot, Person, Relationship, RelationshipType } from "@/lib/types";
 
 export type NodePosition = { x: number; y: number };
@@ -59,6 +58,8 @@ interface FamilyState extends FamilySnapshot {
   undo: () => void;
   redo: () => void;
   startEmpty: () => void;
+  applySavedTreeMigration: () => void;
+  layoutRevision: number;
 }
 
 export const useFamilyStore = create<FamilyState>()(
@@ -74,6 +75,7 @@ export const useFamilyStore = create<FamilyState>()(
 
       return {
         ...emptyFamily(),
+        layoutRevision: 0,
         hydrated: false,
         selectedId: null,
         addOpen: false,
@@ -118,7 +120,8 @@ export const useFamilyStore = create<FamilyState>()(
           const next: Person = {
             ...person,
             id,
-            photo: person.photo ?? makePortrait(person.name, person.gender),
+            customPhoto: Boolean(person.photo) || Boolean(person.customPhoto),
+            photo: person.photo,
           };
           const relationships = [...get().relationships];
           if (link) {
@@ -211,6 +214,7 @@ export const useFamilyStore = create<FamilyState>()(
           remember();
           set({
             ...emptyFamily("Our Family"),
+            layoutRevision: 5,
             selectedId: null,
             positions: {},
             bondEdit: null,
@@ -218,6 +222,22 @@ export const useFamilyStore = create<FamilyState>()(
             addForId: null,
             addRelType: null,
             editingId: null,
+          });
+        },
+        applySavedTreeMigration: () => {
+          if (get().layoutRevision >= 5) return;
+          set({
+            layoutRevision: 5,
+            positions: {},
+            people: get().people.map((p) =>
+              p.customPhoto
+                ? p
+                : {
+                    ...p,
+                    photo: undefined,
+                    customPhoto: false,
+                  }
+            ),
           });
         },
       };
@@ -229,6 +249,7 @@ export const useFamilyStore = create<FamilyState>()(
         relationships: s.relationships,
         viewerId: s.viewerId,
         familyName: s.familyName,
+        layoutRevision: s.layoutRevision,
         positions: s.positions,
         memories: s.memories,
         events: s.events,

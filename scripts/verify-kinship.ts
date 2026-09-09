@@ -92,4 +92,59 @@ const treeMid = (treeMin + treeMax) / 2;
 const rootMid = (Math.min(bcc.x, hs.x) + Math.max(bcc.x, hs.x) + 210) / 2;
 expect(Math.abs(treeMid - rootMid) < 60, `Starting couple should sit at the center of the tree (${rootMid} vs ${treeMid})`);
 
+const twoSidesPeople: Person[] = [
+  person("pgf", "PGF", "male"),
+  person("pgm", "PGM", "female"),
+  person("mgf", "MGF", "male"),
+  person("mgm", "MGM", "female"),
+  person("h", "Hari", "male"),
+  person("w", "Willa", "female"),
+  person("c1", "Cora", "female"),
+  person("c2", "Cal", "male"),
+];
+const twoSidesRels: Relationship[] = [
+  rel("pgm", "wife", "pgf"),
+  rel("mgm", "wife", "mgf"),
+  rel("pgf", "father", "h"),
+  rel("mgf", "father", "w"),
+  rel("h", "husband", "w"),
+  rel("c1", "daughter", "w"),
+  rel("c2", "son", "w"),
+];
+const twoLayout = layoutTree(buildIndex(twoSidesPeople, twoSidesRels));
+const t = new Map(twoLayout.map((n) => [n.id, n]));
+const mid = ((t.get("h")!.x + t.get("w")!.x) / 2 + 105);
+const patMid = (t.get("pgf")!.x + t.get("pgm")!.x) / 2 + 105;
+const matMid = (t.get("mgf")!.x + t.get("mgm")!.x) / 2 + 105;
+expect(t.get("pgf")!.y === t.get("mgf")!.y, "Both grandparent couples should share a row");
+expect(patMid < mid && mid < matMid, "Paternal grandparents should sit left of center and maternal right");
+expect(Math.abs(mid - patMid - (matMid - mid)) < 80, `Grandparent sides should mirror around the couple (${patMid} ${mid} ${matMid})`);
+
+const deepPeople: Person[] = [
+  ...twoSidesPeople,
+  person("ppgf", "PPGF", "male"),
+  person("ppgm", "PPGM", "female"),
+  person("pmgf", "PMGF", "male"),
+  person("pmgm", "PMGM", "female"),
+];
+const deepRels: Relationship[] = [
+  ...twoSidesRels,
+  rel("ppgm", "wife", "ppgf"),
+  rel("pmgm", "wife", "pmgf"),
+  rel("ppgf", "father", "pgf"),
+  rel("pmgf", "father", "pgm"),
+];
+const deepLayout = layoutTree(buildIndex(deepPeople, deepRels));
+const dmap = new Map(deepLayout.map((n) => [n.id, n]));
+const coupleMidDeep = (dmap.get("h")!.x + dmap.get("w")!.x) / 2 + 105;
+const patCouple = (dmap.get("pgf")!.x + dmap.get("pgm")!.x) / 2 + 105;
+const matCouple = (dmap.get("mgf")!.x + dmap.get("mgm")!.x) / 2 + 105;
+const ppgMid = (dmap.get("ppgf")!.x + dmap.get("ppgm")!.x) / 2 + 105;
+const pmgMid = (dmap.get("pmgf")!.x + dmap.get("pmgm")!.x) / 2 + 105;
+expect(patCouple < coupleMidDeep && coupleMidDeep < matCouple, "Deep tree: grandparents still split from the middle couple");
+expect(Math.abs(coupleMidDeep - patCouple - (matCouple - coupleMidDeep)) < 80, "Deep tree: grandparent sides stay mirrored around the middle");
+expect(ppgMid < patCouple && patCouple < pmgMid, "Great-grandparents should split left/right of the paternal couple");
+expect(Math.abs(patCouple - ppgMid - (pmgMid - patCouple)) < 90, `Great-grandparents should mirror around their child couple (${ppgMid} ${patCouple} ${pmgMid})`);
+expect(dmap.get("ppgf")!.y < dmap.get("pgf")!.y, "Great-grandparents sit on the row above grandparents");
+
 console.log("kinship and layout checks passed");

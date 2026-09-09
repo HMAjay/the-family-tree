@@ -1,7 +1,7 @@
 "use client";
 
 import { lifespan } from "@/lib/engine";
-import { displayPortrait } from "@/lib/portraits";
+import { PersonAvatar } from "@/components/person-avatar";
 import type { Person } from "@/lib/types";
 
 export function HoverCard({
@@ -22,9 +22,10 @@ export function HoverCard({
       className="gold-border pointer-events-none fixed z-50 w-72 overflow-hidden rounded-2xl border bg-card shadow-2xl"
       style={{ left, top }}
     >
-      <div className="h-24 overflow-hidden bg-secondary">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={displayPortrait(person)} alt="" className="h-full w-full object-cover object-top" />
+      <div className="flex h-24 items-center justify-center bg-[#efe6d4]">
+        <div className="size-16 overflow-hidden rounded-full">
+          <PersonAvatar person={person} />
+        </div>
       </div>
       <div className="p-4">
         <p className="font-heading text-xl font-bold text-maroon">{person.name}</p>

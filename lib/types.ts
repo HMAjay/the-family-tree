@@ -42,6 +42,7 @@ export interface Person {
   year?: number;
   dateOfDeath?: string;
   photo?: string;
+  customPhoto?: boolean;
   location?: string;
   occupation?: string;
   biography?: string;

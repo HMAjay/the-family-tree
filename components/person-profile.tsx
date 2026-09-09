@@ -12,7 +12,7 @@ import {
   getSpouse,
   lifespan,
 } from "@/lib/engine";
-import { displayPortrait } from "@/lib/portraits";
+import { PersonAvatar } from "@/components/person-avatar";
 import type { Person } from "@/lib/types";
 import { useFamilyStore } from "@/store/family-store";
 
@@ -46,9 +46,10 @@ export function PersonProfile({ id }: { id: string }) {
     <article className="mx-auto max-w-4xl px-4 py-28">
       <div className="gold-border overflow-hidden rounded-3xl border bg-card">
         <div className="grid md:grid-cols-[280px_1fr]">
-          <div className="h-72 bg-secondary md:h-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={displayPortrait(person)} alt={person.name} className="h-full w-full object-cover object-top" />
+          <div className="flex h-72 items-center justify-center bg-[#efe6d4] md:h-full md:min-h-[280px]">
+            <div className="size-48 overflow-hidden rounded-full shadow-md">
+              <PersonAvatar person={person} />
+            </div>
           </div>
           <div className="p-8">
             <h1 className="font-heading text-5xl font-bold text-maroon">{person.name}</h1>
@@ -104,9 +105,8 @@ function People({ title, list }: { title: string; list: Person[] }) {
       <div className="flex flex-wrap gap-3">
         {list.map((p) => (
           <Link key={p.id} href={`/person/${p.id}`} className="gold-border flex items-center gap-3 rounded-full border bg-card pr-4">
-            <span className="size-10 overflow-hidden rounded-full bg-secondary">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={displayPortrait(p)} alt="" className="h-full w-full object-cover" />
+            <span className="size-10 overflow-hidden rounded-full bg-[#efe6d4]">
+              <PersonAvatar person={p} />
             </span>
             <span className="font-heading font-bold text-maroon">{p.name}</span>
           </Link>
