@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, Plus, Printer, TreeDeciduous, X } from "lucide-react";
+import { Menu, Plus, TreeDeciduous, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddPersonDialog } from "@/components/add-person-dialog";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ export function SiteNav() {
 
   return (
     <>
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-3 pt-4 print:hidden">
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-3 pt-4">
         <nav className="pointer-events-auto gold-border flex w-full max-w-5xl items-center gap-2 rounded-full border border-gold/50 bg-[#fbf6ec]/90 px-3 py-2 backdrop-blur-md">
           <Link href="/" className="flex items-center gap-2 pr-1">
             <span className="flex size-9 items-center justify-center rounded-full border border-gold/60 bg-maroon text-ivory">
@@ -32,12 +32,6 @@ export function SiteNav() {
               )}
             >
               Tree
-            </Link>
-            <Link href="/print" className="hidden rounded-full px-3 py-1.5 text-sm hover:bg-secondary sm:inline">
-              <span className="inline-flex items-center gap-1.5">
-                <Printer className="size-3.5" />
-                Print
-              </span>
             </Link>
             <Button onClick={() => setAddOpen(true)} className="rounded-full bg-maroon text-ivory hover:bg-maroon/90">
               <Plus data-icon="inline-start" />
@@ -57,9 +51,6 @@ export function SiteNav() {
             </Link>
             <Link href="/tree" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3">
               Tree
-            </Link>
-            <Link href="/print" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3">
-              Print
             </Link>
           </div>
         </div>

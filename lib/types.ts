@@ -27,7 +27,7 @@ export interface Person {
   name: string;
   nickname?: string;
   gender: Gender;
-  dateOfBirth?: string;
+  year?: number;
   dateOfDeath?: string;
   photo?: string;
   location?: string;

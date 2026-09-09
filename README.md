@@ -1,6 +1,6 @@
 # The Family Tree
 
-Create a family tree in the browser. Add people, connect them, and print.
+Create a family tree in the browser. Add people and connect them.
 
 ```bash
 npm install

@@ -199,15 +199,3 @@
   display: none;
 }
 
-@media print {
-  header, footer, .print\\:hidden {
-    display: none !important;
-  }
-  body {
-    background: white !important;
-  }
-  .react-flow__controls,
-  .react-flow__minimap {
-    display: none !important;
-  }
-}

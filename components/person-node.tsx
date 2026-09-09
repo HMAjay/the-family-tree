@@ -38,7 +38,7 @@ function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
       </div>
       <div className="px-3 py-3">
         <p className="font-heading text-lg leading-tight text-maroon">{person.name}</p>
-        <p className="text-xs text-muted-foreground">{lifespan(person)}</p>
+        {lifespan(person) ? <p className="text-xs text-muted-foreground">{lifespan(person)}</p> : null}
         <p className="mt-2 text-[11px] tracking-wide text-gold uppercase">{relationLabel}</p>
       </div>
     </div>

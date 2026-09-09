@@ -20,7 +20,7 @@ export function AddPersonDialog({
   const addPerson = useFamilyStore((s) => s.addPerson);
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>("female");
-  const [dob, setDob] = useState("");
+  const [year, setYear] = useState("");
   const [location, setLocation] = useState("");
   const [occupation, setOccupation] = useState("");
   const [biography, setBiography] = useState("");
@@ -40,7 +40,7 @@ export function AddPersonDialog({
 
   function reset() {
     setName("");
-    setDob("");
+    setYear("");
     setLocation("");
     setOccupation("");
     setBiography("");
@@ -53,7 +53,7 @@ export function AddPersonDialog({
       {
         name: name.trim(),
         gender,
-        dateOfBirth: dob || undefined,
+        year: parseYear(year),
         location: location || undefined,
         occupation: occupation || undefined,
         biography: biography || undefined,
@@ -77,7 +77,7 @@ export function AddPersonDialog({
       >
         <div className="border-b border-gold/30 px-6 py-5">
           <h2 id="add-person-title" className="font-heading text-3xl text-maroon">
-            {people.length ? "Add someone" : "The first ancestor"}
+            {people.length ? "Add someone" : "The first member"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {people.length ? "A name, a bond, and they take their place on the tree." : "Every tree begins with one person."}
@@ -90,8 +90,18 @@ export function AddPersonDialog({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1.5 text-sm">
-              <Label>Born</Label>
-              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="h-10 rounded-xl" />
+              <Label>Year</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1000}
+                max={2100}
+                step={1}
+                placeholder="1950"
+                value={year}
+                onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="h-10 rounded-xl"
+              />
             </label>
             <label className="grid gap-1.5 text-sm">
               <Label>Gender</Label>
@@ -179,4 +189,10 @@ export function AddPersonDialog({
       </div>
     </div>
   );
+}
+
+function parseYear(value: string): number | undefined {
+  const y = Number(value);
+  if (!value.trim() || !Number.isFinite(y) || y < 1000 || y > 2100) return undefined;
+  return Math.trunc(y);
 }

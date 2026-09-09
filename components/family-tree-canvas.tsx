@@ -11,7 +11,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Plus, Printer } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
@@ -133,10 +133,10 @@ export function FamilyTreeCanvas() {
           <div className="absolute inset-0 m-auto size-4 rounded-full bg-gold" style={{ animation: "gold-pulse 2.8s ease-in-out infinite" }} />
         </div>
         <h1 className="font-heading text-4xl text-maroon md:text-5xl">Every great story begins with someone.</h1>
-        <p className="mt-3 max-w-md text-muted-foreground">Add the first ancestor. Children, parents, and spouses can join from there.</p>
+        <p className="mt-3 max-w-md text-muted-foreground">Add the first member. Children, parents, and spouses can join from there.</p>
         <Button type="button" className="mt-8 h-11 rounded-full bg-maroon px-8 text-ivory" onClick={() => setAddOpen(true)}>
           <Plus data-icon="inline-start" />
-          Add the first ancestor
+          Add the first member
         </Button>
         <AddPersonDialog open={addOpen} onOpenChange={setAddOpen} />
       </div>
@@ -147,7 +147,7 @@ export function FamilyTreeCanvas() {
 
   return (
     <div className="flex h-full min-h-[28rem] flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 print:hidden md:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
         <div>
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
@@ -160,10 +160,6 @@ export function FamilyTreeCanvas() {
           <Button size="sm" className="rounded-full bg-maroon text-ivory" onClick={() => setAddOpen(true)}>
             <Plus data-icon="inline-start" />
             Add person
-          </Button>
-          <Button size="sm" variant="outline" className="rounded-full" onClick={() => router.push("/print")}>
-            <Printer data-icon="inline-start" />
-            Print
           </Button>
           <Button size="sm" variant="ghost" className="rounded-full text-muted-foreground" onClick={() => startEmpty()}>
             New tree
@@ -224,7 +220,7 @@ export function FamilyTreeCanvas() {
 function CenterButton() {
   const { fitView } = useReactFlow();
   return (
-    <div className="absolute top-3 right-3 z-10 print:hidden">
+    <div className="absolute top-3 right-3 z-10">
       <Button size="sm" variant="secondary" className="rounded-full" onClick={() => fitView({ padding: 0.2, duration: 600 })}>
         Center
       </Button>

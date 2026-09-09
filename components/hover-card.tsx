@@ -29,7 +29,7 @@ export function HoverCard({
       </div>
       <div className="p-4">
         <p className="font-heading text-xl text-maroon">{person.name}</p>
-        <p className="text-xs text-muted-foreground">{lifespan(person)}</p>
+        {lifespan(person) ? <p className="text-xs text-muted-foreground">{lifespan(person)}</p> : null}
         <p className="mt-2 text-sm text-gold">{relation}</p>
         {(person.occupation || person.location) && (
           <p className="mt-1 text-sm text-muted-foreground">

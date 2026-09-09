@@ -225,19 +225,21 @@ function uniquePeople(people: Person[]) {
   });
 }
 
-export function yearOf(iso?: string) {
-  if (!iso) return undefined;
-  const y = Number(iso.slice(0, 4));
-  return Number.isFinite(y) ? y : undefined;
+export function yearOf(person: Person) {
+  if (typeof person.year === "number" && Number.isFinite(person.year) && person.year > 0) {
+    return Math.trunc(person.year);
+  }
+  const legacy = (person as Person & { dateOfBirth?: string }).dateOfBirth;
+  if (legacy) {
+    const y = Number(String(legacy).slice(0, 4));
+    if (Number.isFinite(y) && y > 0) return y;
+  }
+  return undefined;
 }
 
 export function lifespan(person: Person) {
-  const b = yearOf(person.dateOfBirth);
-  const d = yearOf(person.dateOfDeath);
-  if (b && d) return `${b} – ${d}`;
-  if (b) return `${b} –`;
-  if (d) return `– ${d}`;
-  return "Years unknown";
+  const y = yearOf(person);
+  return y ? String(y) : "";
 }
 
 export function findPersonByName(people: Person[], query: string): Person | undefined {
@@ -487,7 +489,7 @@ export function oldestAncestors(index: GraphIndex): Person[] {
   let min = Infinity;
   for (const v of gens.values()) min = Math.min(min, v);
   const people = [...index.people.values()].filter((p) => gens.get(p.id) === min);
-  return people.sort((a, b) => (a.dateOfBirth ?? "").localeCompare(b.dateOfBirth ?? ""));
+  return people.sort((a, b) => (yearOf(a) ?? 0) - (yearOf(b) ?? 0));
 }
 
 export function marriedIntoFamily(index: GraphIndex, familyName = "Sharma"): Person[] {
@@ -538,9 +540,7 @@ export function familyStats(snapshot: FamilySnapshot) {
   const gens = generationMap(index);
   const genCount = gens.size ? Math.max(...gens.values()) + 1 : 0;
   const cities = new Set(snapshot.people.map((p) => p.location).filter(Boolean));
-  const years = snapshot.people
-    .flatMap((p) => [yearOf(p.dateOfBirth), yearOf(p.dateOfDeath)])
-    .filter((n): n is number => Boolean(n));
+  const years = snapshot.people.map((p) => yearOf(p)).filter((n): n is number => Boolean(n));
   const span = years.length ? Math.max(...years) - Math.min(...years) : 0;
   const parentSets = new Set(
     snapshot.people
@@ -560,9 +560,10 @@ export function familyStats(snapshot: FamilySnapshot) {
 
 export function personTimeline(person: Person, snapshot: FamilySnapshot) {
   const items: { year: string; title: string; detail: string }[] = [];
-  if (person.dateOfBirth) {
+  const born = yearOf(person);
+  if (born) {
     items.push({
-      year: person.dateOfBirth.slice(0, 4),
+      year: String(born),
       title: "Born",
       detail: `${person.name} was born${person.location ? ` in ${person.location}` : ""}.`,
     });
@@ -570,17 +571,17 @@ export function personTimeline(person: Person, snapshot: FamilySnapshot) {
   const index = buildIndex(snapshot.people, snapshot.relationships);
   const spouse = getSpouse(index, person.id)[0];
   if (spouse) {
-    const y = yearOf(person.dateOfBirth);
     items.push({
-      year: y ? String(y + 24) : "Wedding",
+      year: born ? String(born + 24) : "Wedding",
       title: `Married ${spouse.name}`,
       detail: `A partnership that bound two stories into one household.`,
     });
   }
   for (const child of getChildren(index, person.id)) {
-    if (child.dateOfBirth) {
+    const childYear = yearOf(child);
+    if (childYear) {
       items.push({
-        year: child.dateOfBirth.slice(0, 4),
+        year: String(childYear),
         title: `${child.name} was born`,
         detail: `${person.name} became a parent.`,
       });

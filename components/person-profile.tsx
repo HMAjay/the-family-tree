@@ -48,7 +48,7 @@ export function PersonProfile({ id }: { id: string }) {
           </div>
           <div className="p-8">
             <h1 className="font-heading text-5xl text-maroon">{person.name}</h1>
-            <p className="mt-2 text-lg text-muted-foreground">{lifespan(person)}</p>
+            {lifespan(person) ? <p className="mt-2 text-lg text-muted-foreground">{lifespan(person)}</p> : null}
             {person.biography && <p className="mt-6 max-w-prose text-lg italic">“{person.biography}”</p>}
             <p className="mt-4 text-sm text-muted-foreground">
               {[person.occupation, person.location].filter(Boolean).join(" · ")}

@@ -30,7 +30,7 @@ export function layoutTree(index: GraphIndex): LaidOutNode[] {
   const maxGen = byGen.size ? Math.max(...byGen.keys()) : 0;
 
   for (let g = 0; g <= maxGen; g++) {
-    const people = (byGen.get(g) ?? []).sort((a, b) => (a.dateOfBirth ?? a.name).localeCompare(b.dateOfBirth ?? b.name));
+    const people = (byGen.get(g) ?? []).sort((a, b) => (yearOf(a) ?? 0) - (yearOf(b) ?? 0) || a.name.localeCompare(b.name));
     const ordered: Person[] = [];
     for (const p of people) {
       if (placed.has(p.id)) continue;
@@ -89,5 +89,5 @@ export function layoutTree(index: GraphIndex): LaidOutNode[] {
 export const treeMetrics = { NODE_W, NODE_H, GAP_X, GAP_Y };
 
 export function sortByBirth(people: Person[]) {
-  return [...people].sort((a, b) => (yearOf(a.dateOfBirth) ?? 0) - (yearOf(b.dateOfBirth) ?? 0));
+  return [...people].sort((a, b) => (yearOf(a) ?? 0) - (yearOf(b) ?? 0));
 }
