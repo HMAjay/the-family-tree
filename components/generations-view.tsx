@@ -51,6 +51,16 @@ export function GenerationsView() {
       <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">
         Walk from the oldest roots toward the newest leaves. Each generation arrives with a quiet step.
       </p>
+      {!people.length && (
+        <p className="mt-12 text-center">
+          <Link href="/tree" className="text-maroon underline">
+            Add the first ancestor
+          </Link>{" "}
+          to begin the line.
+        </p>
+      )}
+      {people.length > 0 && (
+      <>
       <div className="mt-10 flex flex-wrap justify-center gap-2">
         {Array.from({ length: max + 1 }, (_, g) => (
           <button
@@ -95,6 +105,8 @@ export function GenerationsView() {
           ))}
         </div>
       </motion.div>
+      </>
+      )}
     </div>
   );
 }

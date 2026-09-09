@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 export function FloatingGuide() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  if (path === "/ask") return null;
+  if (path === "/ask" || path === "/login" || path === "/register" || path === "/print") return null;
   return (
     <>
       <Button
         aria-label="Ask Your Family"
-        className="fixed right-4 bottom-4 z-40 size-14 rounded-full bg-maroon text-gold shadow-xl hover:bg-maroon/90 md:right-6 md:bottom-6"
+        className="fixed right-4 bottom-4 z-40 size-14 rounded-full bg-maroon text-gold shadow-xl hover:bg-maroon/90 print:hidden md:right-6 md:bottom-6"
         onClick={() => setOpen((v) => !v)}
       >
         {open ? <X /> : <MessageCircle />}

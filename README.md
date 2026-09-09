@@ -1,8 +1,8 @@
 # The Family Tree
 
-A premium ancestry and heritage site — a digital heirloom for tracing roots, celebrating bonds, and keeping names from slipping between houses.
+A premium ancestry site — a digital heirloom for tracing roots and keeping names.
 
-The sample tree is **the Sharma family of Mysuru and Bengaluru**: six generations, inferred kinship, memories, festivals, and a guide that answers only from verified relationships.
+Build your own tree from a blank page. There is no sample family. Saving and printing require an account.
 
 ## Run locally
 
@@ -15,42 +15,21 @@ Open [http://localhost:43217](http://localhost:43217).
 
 ## What you can do
 
-- Explore an interactive family tree (zoom, pan, mini-map, generation collapse, ancestor/descendant highlights)
-- Add people and relationships; grandparents, uncles, cousins, and in-laws are inferred from parents and marriages
-- Open full profiles with family circles, memories, and a life timeline
-- Walk **Our Generations** and **Our Heritage**
-- Keep photographs and letters in **Memories That Live On**
-- Ask **The Family Guide** questions such as “Who is Rahul’s grandfather?”
-- Trace **How Are We Related?** and glow the golden path on the tree
+- Start from the landing page with **Start creating your family tree**
+- Add people and relationships; grandparents, uncles, cousins, and in-laws are inferred
+- Walk generations and ask **The Family Guide** (answers only from your tree)
+- **Save** or **Print** after you log in or create an account
 
-Family data lives in the browser (local storage) so the demo works without a database. Restore the sample family or start empty from Family Settings.
+## Accounts
 
-## Architecture
+Register with email and password. Your tree is stored on the server for your account.
 
-| Layer | Choice |
-| --- | --- |
-| App | Next.js (App Router) + TypeScript |
-| UI | Tailwind CSS + shadcn/ui |
-| Motion | Framer Motion |
-| Tree | React Flow |
-| Kinship engine | Pure TypeScript tools (`getParents`, `getChildren`, `findRelationship`, …) |
-| Guide | `/api/chat` calls those tools — it does not invent relatives |
-| Schema | `prisma/schema.prisma` (PostgreSQL) for when you attach a real database |
-
-### Optional PostgreSQL
-
-Set `DATABASE_URL` and run Prisma migrate when you are ready to persist families on a server. Until then, the UI store is the source of truth.
+Set `AUTH_SECRET` in production. Optional `DATABASE_URL` is documented in Prisma if you later move off the file store.
 
 ## Deploy on Vercel
-
-This project is a standard Next.js app.
 
 ```bash
 npx vercel
 ```
 
-Or import the Git repository in the Vercel dashboard. No environment variables are required for the demo.
-
-## Stack notes
-
-The Family Guide never sends the whole database to a language model. It parses the question, runs structured tools against the tree, and writes a natural-language answer from that result. If a link is missing, it says so.
+Set `AUTH_SECRET` in the project environment variables. On Vercel’s serverless filesystem, account data lives in `/tmp` unless you attach a database.

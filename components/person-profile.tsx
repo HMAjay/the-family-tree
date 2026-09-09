@@ -18,7 +18,6 @@ import { useFamilyStore } from "@/store/family-store";
 export function PersonProfile({ id }: { id: string }) {
   const people = useFamilyStore((s) => s.people);
   const relationships = useFamilyStore((s) => s.relationships);
-  const memories = useFamilyStore((s) => s.memories);
   const events = useFamilyStore((s) => s.events);
   const heritage = useFamilyStore((s) => s.heritage);
   const viewerId = useFamilyStore((s) => s.viewerId);
@@ -26,7 +25,7 @@ export function PersonProfile({ id }: { id: string }) {
   const setSelected = useFamilyStore((s) => s.setSelected);
   const person = people.find((p) => p.id === id);
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
-  const snapshot = { people, relationships, memories, events, heritage, viewerId, familyName };
+  const snapshot = { people, relationships, memories: [], events, heritage, viewerId, familyName };
 
   if (!person) {
     return (
@@ -44,7 +43,6 @@ export function PersonProfile({ id }: { id: string }) {
   const children = getChildren(index, person.id);
   const siblings = getSiblings(index, person.id);
   const grandchildren = getGrandchildren(index, person.id);
-  const personMemories = memories.filter((m) => m.associatedPeople.includes(person.id));
   const timeline = personTimeline(person, snapshot);
 
   return (
@@ -87,19 +85,6 @@ export function PersonProfile({ id }: { id: string }) {
       <People title="Children" list={children} />
       <People title="Siblings" list={siblings} />
       <People title="Grandchildren" list={grandchildren} />
-
-      <Section title="Memories">
-        {personMemories.length === 0 && <p>No memories attached yet.</p>}
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {personMemories.map((m) => (
-            <Link key={m.id} href="/memories" className="overflow-hidden rounded-xl border border-gold/30">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.media} alt="" className="h-32 w-full object-cover" />
-              <p className="p-3 font-medium">{m.title}</p>
-            </Link>
-          ))}
-        </div>
-      </Section>
 
       <Section title="Photos">
         <div className="h-56 overflow-hidden rounded-2xl border border-gold/40">

@@ -13,7 +13,7 @@ export function RelatedExplorer() {
   const setHighlight = useFamilyStore((s) => s.setHighlight);
   const router = useRouter();
   const [a, setA] = useState(viewerId ?? people[0]?.id ?? "");
-  const [b, setB] = useState(people.find((p) => p.id === "rahul")?.id ?? people[1]?.id ?? "");
+  const [b, setB] = useState(people[1]?.id ?? "");
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const path = a && b ? findRelationship(index, a, b) : null;
   const sorted = [...people].sort((x, y) => x.name.localeCompare(y.name));
@@ -25,6 +25,13 @@ export function RelatedExplorer() {
       <p className="mx-auto mt-4 max-w-lg text-center text-muted-foreground">
         Choose two people. The verified path between them will glow on the tree — never guessed, only walked.
       </p>
+      {people.length < 2 && (
+        <p className="mt-12 text-center text-muted-foreground">
+          Add at least two family members, then return here.
+        </p>
+      )}
+      {people.length >= 2 && (
+      <>
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm">
           Person A
@@ -74,6 +81,8 @@ export function RelatedExplorer() {
             </Button>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );

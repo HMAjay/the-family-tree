@@ -9,7 +9,7 @@ import { useFamilyStore } from "@/store/family-store";
 export function LandingPage() {
   const { scrollYProgress } = useScroll();
   const reveal = useTransform(scrollYProgress, [0, 0.35], [0.35, 1]);
-  const familyName = useFamilyStore((s) => s.familyName);
+  const people = useFamilyStore((s) => s.people);
 
   return (
     <div>
@@ -27,7 +27,7 @@ export function LandingPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-sm tracking-[0.35em] text-gold uppercase"
         >
-          {familyName}
+          The Family Tree
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
@@ -57,32 +57,34 @@ export function LandingPage() {
             href="/tree"
             className="inline-flex h-10 items-center rounded-full bg-maroon px-6 text-sm text-ivory hover:bg-maroon/90"
           >
-            Explore the Family Tree
+            Start creating your family tree
           </Link>
           <Link
-            href="/settings"
+            href="/register"
             className="inline-flex h-10 items-center rounded-full border border-gold px-6 text-sm hover:bg-secondary"
           >
-            Begin Your Family Story
+            Create an account to save
           </Link>
         </motion.div>
         <motion.div style={{ opacity: reveal }} className="mt-6 w-full">
           <BanyanReveal />
         </motion.div>
         <p className="mt-2 max-w-md text-xs tracking-wide text-muted-foreground">
-          Roots for the ancestors · trunk for the lineage · branches for generations · leaves for each name we still speak
+          Begin with one ancestor. Login when you are ready to save or print.
         </p>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <FamilyStats />
-      </section>
+      {people.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-16">
+          <FamilyStats />
+        </section>
+      )}
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-24 md:grid-cols-3">
         {[
-          { href: "/generations", title: "Our Generations", copy: "Walk the line from great-great-grandparents to the child still learning names." },
-          { href: "/heritage", title: "Our Heritage", copy: "Mysuru courtyards, Dasara returns, rasam notes, and the values that outlived houses." },
-          { href: "/ask", title: "Ask Your Family", copy: "The Family Guide answers only from the tree — kinship without invention." },
+          { href: "/tree", title: "Build the tree", copy: "Add people, connect parents and spouses, and watch generations take shape." },
+          { href: "/generations", title: "Our Generations", copy: "Walk the line from the oldest roots to the newest leaves." },
+          { href: "/ask", title: "Ask Your Family", copy: "The Family Guide answers only from the tree you have recorded." },
         ].map((c) => (
           <Link key={c.href} href={c.href} className="gold-border rounded-2xl border bg-card/80 p-6 transition hover:-translate-y-1">
             <h2 className="font-heading text-3xl text-maroon">{c.title}</h2>

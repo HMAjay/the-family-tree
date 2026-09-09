@@ -14,8 +14,8 @@ const suggestions = [
   "Who is my grandfather?",
   "Show my ancestors",
   "Who are my cousins?",
-  "How am I related to Rahul?",
   "Show my family lineage",
+  "Who is the oldest ancestor in the tree?",
 ];
 
 interface Msg {

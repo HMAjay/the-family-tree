@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-gold/30 bg-[#3d1a20] text-[#f4ead8]">
+    <footer className="mt-auto border-t border-gold/30 bg-[#3d1a20] text-[#f4ead8] print:hidden">
       <div className="mx-auto max-w-6xl px-6 py-16 text-center">
         <p className="font-heading text-3xl italic md:text-4xl">We are because they were.</p>
         <div className="ornament-line mx-auto my-8 max-w-xs" />
@@ -16,6 +16,7 @@ export function SiteFooter() {
           <Link href="/settings" className="hover:text-gold">Family Settings</Link>
           <Link href="/contact" className="hover:text-gold">Contact</Link>
           <Link href="/related" className="hover:text-gold">How Are We Related?</Link>
+          <Link href="/login" className="hover:text-gold">Log in</Link>
         </nav>
       </div>
     </footer>

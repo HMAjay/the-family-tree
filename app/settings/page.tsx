@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFamilyStore } from "@/store/family-store";
+import { TreeActions } from "@/components/tree-actions";
 
 export default function SettingsPage() {
   const familyName = useFamilyStore((s) => s.familyName);
@@ -10,14 +11,13 @@ export default function SettingsPage() {
   const people = useFamilyStore((s) => s.people);
   const viewerId = useFamilyStore((s) => s.viewerId);
   const setViewer = useFamilyStore((s) => s.setViewer);
-  const resetSample = useFamilyStore((s) => s.resetSample);
   const startEmpty = useFamilyStore((s) => s.startEmpty);
 
   return (
     <div className="mx-auto max-w-xl px-4 py-28">
       <h1 className="font-heading text-5xl text-maroon">Family Settings</h1>
       <p className="mt-3 text-muted-foreground">
-        This heirloom lives in your browser. Restore the Sharma sample family, or begin with a single ancestor.
+        Name your household. Saving and printing the tree require an account.
       </p>
       <label className="mt-8 grid gap-2 text-sm">
         Family name
@@ -38,12 +38,12 @@ export default function SettingsPage() {
           ))}
         </select>
       </label>
+      <div className="mt-8">
+        <TreeActions />
+      </div>
       <div className="mt-10 flex flex-wrap gap-3">
-        <Button className="rounded-full bg-maroon text-ivory" onClick={() => resetSample()}>
-          Restore sample family
-        </Button>
         <Button variant="outline" className="rounded-full" onClick={() => startEmpty()}>
-          Start an empty tree
+          Clear the tree
         </Button>
       </div>
     </div>

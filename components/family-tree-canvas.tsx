@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +27,8 @@ import { layoutTree } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
 import { AddPersonDialog } from "@/components/add-person-dialog";
 import { HoverCard } from "@/components/hover-card";
+import { TreeActions } from "@/components/tree-actions";
 import type { Person } from "@/lib/types";
-import { Input } from "@/components/ui/input";
 
 const nodeTypes = { person: PersonNode };
 
@@ -46,7 +46,6 @@ export function FamilyTreeCanvas() {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
-  const [query, setQuery] = useState("");
 
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const layout = useMemo(() => layoutTree(index), [index]);
@@ -147,14 +146,8 @@ export function FamilyTreeCanvas() {
 
   return (
     <div className="flex h-[calc(100dvh-5.5rem)] flex-col">
-      <div className="flex flex-wrap items-center gap-2 px-3 py-3 md:px-6">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Find a person on the tree…"
-          className="max-w-xs rounded-full"
-        />
-        <TreeSearchFocus query={query} />
+      <div className="flex flex-wrap items-center gap-2 px-3 py-3 print:hidden md:px-6">
+        <TreeActions />
         <Button variant="outline" size="sm" onClick={() => applyMode("ancestors")}>
           Ancestors
         </Button>
@@ -231,30 +224,12 @@ export function FamilyTreeCanvas() {
 function CenterButton() {
   const { fitView } = useReactFlow();
   return (
-    <div className="absolute top-3 right-3 z-10">
+    <div className="absolute top-3 right-3 z-10 print:hidden">
       <Button size="sm" variant="secondary" onClick={() => fitView({ duration: 600 })}>
         Center tree
       </Button>
     </div>
   );
-}
-
-function TreeSearchFocus({ query }: { query: string }) {
-  const people = useFamilyStore((s) => s.people);
-  const setSelected = useFamilyStore((s) => s.setSelected);
-  const { setCenter, getNode } = useReactFlow();
-  useEffect(() => {
-    if (!query.trim()) return;
-    const q = query.toLowerCase();
-    const match = people.find((p) => p.name.toLowerCase().includes(q));
-    if (!match) return;
-    const node = getNode(match.id);
-    if (node) {
-      setSelected(match.id);
-      setCenter(node.position.x + 100, node.position.y + 80, { zoom: 1.1, duration: 700 });
-    }
-  }, [query, people, getNode, setCenter, setSelected]);
-  return null;
 }
 
 export function EmptyTree({
@@ -279,6 +254,10 @@ export function EmptyTree({
       <Button className="mt-8 rounded-full bg-maroon text-ivory" onClick={onAdd}>
         Add the First Ancestor
       </Button>
+      <p className="mt-6 text-xs text-muted-foreground">Saving and printing require an account.</p>
+      <div className="mt-4">
+        <TreeActions />
+      </div>
       <AddPersonDialog open={addOpen} onOpenChange={onOpenChange} />
     </div>
   );

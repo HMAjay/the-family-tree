@@ -3,7 +3,7 @@
 import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { emptyFamily, seedFamily } from "@/lib/seed";
+import { emptyFamily } from "@/lib/empty-family";
 import { makePortrait } from "@/lib/portraits";
 import type {
   FamilyEvent,
@@ -11,7 +11,6 @@ import type {
   HighlightMode,
   MemoryItem,
   Person,
-  Relationship,
   RelationshipType,
 } from "@/lib/types";
 
@@ -22,12 +21,10 @@ interface FamilyState extends FamilySnapshot {
   highlightIds: string[];
   pathIds: string[];
   collapsedGens: number | null;
-  searchQuery: string;
   setHydrated: () => void;
   setSelected: (id: string | null) => void;
   setHighlight: (mode: HighlightMode, ids: string[], pathIds?: string[]) => void;
   setCollapsedGens: (n: number | null) => void;
-  setSearchQuery: (q: string) => void;
   addPerson: (person: Omit<Person, "id"> & { id?: string }, link?: { relativeId: string; type: RelationshipType }) => string;
   updatePerson: (id: string, patch: Partial<Person>) => void;
   removePerson: (id: string) => void;
@@ -37,7 +34,6 @@ interface FamilyState extends FamilySnapshot {
   updateHeritage: (patch: Partial<FamilySnapshot["heritage"]>) => void;
   setViewer: (id: string | null) => void;
   setFamilyName: (name: string) => void;
-  resetSample: () => void;
   startEmpty: () => void;
   importSnapshot: (snap: FamilySnapshot) => void;
 }
@@ -45,19 +41,17 @@ interface FamilyState extends FamilySnapshot {
 export const useFamilyStore = create<FamilyState>()(
   persist(
     (set, get) => ({
-      ...seedFamily,
+      ...emptyFamily(),
       hydrated: false,
-      selectedId: "ananya",
+      selectedId: null,
       highlightMode: "none",
       highlightIds: [],
       pathIds: [],
       collapsedGens: null,
-      searchQuery: "",
       setHydrated: () => set({ hydrated: true }),
       setSelected: (id) => set({ selectedId: id }),
       setHighlight: (mode, ids, pathIds = []) => set({ highlightMode: mode, highlightIds: ids, pathIds }),
       setCollapsedGens: (n) => set({ collapsedGens: n }),
-      setSearchQuery: (q) => set({ searchQuery: q }),
       addPerson: (person, link) => {
         const id = person.id ?? nanoid(10);
         const photo = person.photo ?? makePortrait(person.name, person.gender);
@@ -91,10 +85,7 @@ export const useFamilyStore = create<FamilyState>()(
         }),
       addRelationship: (personA, type, personB) =>
         set({
-          relationships: [
-            ...get().relationships,
-            { id: nanoid(10), personA, personB, type },
-          ],
+          relationships: [...get().relationships, { id: nanoid(10), personA, personB, type }],
         }),
       addMemory: (memory) =>
         set({ memories: [...get().memories, { ...memory, id: nanoid(10) }] }),
@@ -102,14 +93,6 @@ export const useFamilyStore = create<FamilyState>()(
       updateHeritage: (patch) => set({ heritage: { ...get().heritage, ...patch } }),
       setViewer: (id) => set({ viewerId: id }),
       setFamilyName: (name) => set({ familyName: name }),
-      resetSample: () =>
-        set({
-          ...seedFamily,
-          selectedId: "ananya",
-          highlightMode: "none",
-          highlightIds: [],
-          pathIds: [],
-        }),
       startEmpty: () =>
         set({
           ...emptyFamily(get().familyName || "Our Family"),
@@ -121,7 +104,7 @@ export const useFamilyStore = create<FamilyState>()(
       importSnapshot: (snap) => set({ ...snap }),
     }),
     {
-      name: "the-family-tree-v1",
+      name: "the-family-tree-v2",
       partialize: (s) => ({
         people: s.people,
         relationships: s.relationships,

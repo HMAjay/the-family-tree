@@ -4,9 +4,9 @@ export default function PrivacyPage() {
       <h1 className="font-heading text-5xl text-maroon">Privacy</h1>
       <div className="ornament-line my-6" />
       <p className="leading-relaxed">
-        Family data in this demonstration is stored in your browser (local storage). Photographs you add never leave
-        this device unless you deploy the project with your own database. The Family Guide answers from the tree you
-        can see — it does not send names to a third-party model unless you later connect an API key of your own.
+        You may build a family tree without an account. Drafts stay in this browser until you choose to save. Saving
+        and printing require a login. Saved trees are stored with your account on this website. Photographs you add
+        are part of that saved tree.
       </p>
     </div>
   );
