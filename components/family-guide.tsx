@@ -43,17 +43,18 @@ export function FamilyGuide({ compact = false }: { compact?: boolean }) {
     setMessages((m) => [...m, { role: "user", text: q }]);
     setThinking(true);
     const snap = snapshotFromStore();
+    const local = answerFamilyQuestion(snap, q);
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, snapshot: snap }),
       });
-      const reply = (await res.json()) as ChatReply;
-      setMessages((m) => [...m, { role: "guide", text: reply.text, reply }]);
+      const reply = (await res.json()) as ChatReply & { error?: string };
+      const next = reply.text ? reply : local;
+      setMessages((m) => [...m, { role: "guide", text: next.text, reply: next }]);
     } catch {
-      const reply = answerFamilyQuestion(snap, q);
-      setMessages((m) => [...m, { role: "guide", text: reply.text, reply }]);
+      setMessages((m) => [...m, { role: "guide", text: local.text, reply: local }]);
     } finally {
       setThinking(false);
     }
@@ -83,6 +84,7 @@ export function FamilyGuide({ compact = false }: { compact?: boolean }) {
         {suggestions.map((s) => (
           <button
             key={s}
+            type="button"
             onClick={() => ask(s)}
             className="rounded-full border border-gold/40 bg-ivory px-3 py-1 text-xs text-maroon hover:bg-secondary"
           >
@@ -144,7 +146,8 @@ export function FamilyGuide({ compact = false }: { compact?: boolean }) {
 }
 
 function RichText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  const safe = text || "";
+  const parts = safe.split(/(\*\*[^*]+\*\*)/g);
   return (
     <span className="whitespace-pre-wrap">
       {parts.map((part, i) =>

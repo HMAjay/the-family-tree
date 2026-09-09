@@ -74,6 +74,7 @@ export function FamilyTreeCanvas() {
           id: n.id,
           type: "person",
           position: { x: n.x, y: n.y },
+          style: { width: 210, height: 250 },
           data: {
             person: n.person,
             relationLabel: relationToSelected(index, selectedId, n.id),
@@ -145,7 +146,7 @@ export function FamilyTreeCanvas() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-5.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-5.5rem)] min-h-[28rem] flex-col">
       <div className="flex flex-wrap items-center gap-2 px-3 py-3 print:hidden md:px-6">
         <TreeActions />
         <Button variant="outline" size="sm" onClick={() => applyMode("ancestors")}>
@@ -177,8 +178,9 @@ export function FamilyTreeCanvas() {
           Add member
         </Button>
       </div>
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1" style={{ minHeight: 420 }}>
         <ReactFlow
+          className="h-full w-full"
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}

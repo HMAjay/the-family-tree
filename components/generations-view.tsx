@@ -24,9 +24,10 @@ export function GenerationsView() {
   const viewerId = useFamilyStore((s) => s.viewerId);
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const gens = useMemo(() => generationMap(index), [index]);
-  const viewerGen = viewerId ? gens.get(viewerId) ?? 4 : 4;
-  const max = people.length ? Math.max(...[...gens.values()]) : 0;
-  const [active, setActive] = useState(viewerGen);
+  const viewerGen = viewerId ? (gens.get(viewerId) ?? 0) : 0;
+  const max = people.length ? Math.max(...[...gens.values()], 0) : 0;
+  const [active, setActive] = useState(0);
+  const shown = Math.min(active, max);
 
   const groups = useMemo(() => {
     const map = new Map<number, typeof people>();
@@ -67,7 +68,7 @@ export function GenerationsView() {
             key={g}
             onClick={() => setActive(g)}
             className={`rounded-full border px-4 py-1.5 text-sm ${
-              active === g ? "border-maroon bg-maroon text-ivory" : "border-gold/40 hover:bg-secondary"
+              shown === g ? "border-maroon bg-maroon text-ivory" : "border-gold/40 hover:bg-secondary"
             }`}
           >
             Generation {roman[g] ?? g + 1}
@@ -75,16 +76,16 @@ export function GenerationsView() {
         ))}
       </div>
       <motion.div
-        key={active}
+        key={shown}
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55 }}
         className="mt-12"
       >
-        <p className="text-center text-gold">Generation {roman[active] ?? active + 1}</p>
-        <h2 className="font-heading text-center text-3xl text-maroon">{labelFor(active)}</h2>
+        <p className="text-center text-gold">Generation {roman[shown] ?? shown + 1}</p>
+        <h2 className="font-heading text-center text-3xl text-maroon">{labelFor(shown)}</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(groups.get(active) ?? []).map((p) => (
+          {(groups.get(shown) ?? []).map((p) => (
             <Link
               key={p.id}
               href={`/person/${p.id}`}
