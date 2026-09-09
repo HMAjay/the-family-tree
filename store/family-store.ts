@@ -4,8 +4,9 @@ import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { emptyFamily } from "@/lib/empty-family";
+import { hasParentLink, parentIdsFromRelationships } from "@/lib/engine";
 import { makePortrait } from "@/lib/portraits";
-import type { FamilySnapshot, Person, RelationshipType } from "@/lib/types";
+import type { FamilySnapshot, Person, Relationship, RelationshipType } from "@/lib/types";
 
 export type NodePosition = { x: number; y: number };
 
@@ -80,6 +81,9 @@ export const useFamilyStore = create<FamilyState>()(
             personB: link.relativeId,
             type: link.type,
           });
+          if (link.type === "brother" || link.type === "sister") {
+            inheritParents(relationships, id, link.relativeId, next.gender);
+          }
         }
         set({
           people: [...get().people, next],
@@ -96,6 +100,10 @@ export const useFamilyStore = create<FamilyState>()(
             !((r.personA === personA && r.personB === personB) || (r.personA === personB && r.personB === personA))
         );
         relationships.push({ id: nanoid(10), personA, personB, type });
+        if (type === "brother" || type === "sister") {
+          const from = get().people.find((p) => p.id === personA);
+          if (from) inheritParents(relationships, personA, personB, from.gender);
+        }
         set({ relationships });
       },
       removeBond: (personA, personB) => {
@@ -131,3 +139,22 @@ export const useFamilyStore = create<FamilyState>()(
     }
   )
 );
+
+function inheritParents(
+  relationships: Relationship[],
+  childId: string,
+  siblingId: string,
+  childGender: Person["gender"]
+) {
+  const childType = childGender === "female" ? "daughter" : "son";
+  for (const parentId of parentIdsFromRelationships(relationships, siblingId)) {
+    if (parentId === childId) continue;
+    if (hasParentLink(relationships, parentId, childId)) continue;
+    relationships.push({
+      id: nanoid(10),
+      personA: childId,
+      personB: parentId,
+      type: childType,
+    });
+  }
+}

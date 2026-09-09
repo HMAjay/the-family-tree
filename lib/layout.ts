@@ -11,8 +11,8 @@ export interface LaidOutNode {
 
 const NODE_W = 210;
 const NODE_H = 250;
-const GAP_X = 88;
-const GAP_Y = 160;
+const GAP_X = 176;
+const GAP_Y = 188;
 const STEP = NODE_W + GAP_X;
 
 function personKey(p: Person) {

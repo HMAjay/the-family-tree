@@ -125,6 +125,23 @@ export function getParents(index: GraphIndex, id: string) {
   return (index.parentsOf.get(id) ?? []).map((pid) => index.people.get(pid)).filter(Boolean) as Person[];
 }
 
+export function parentIdsFromRelationships(relationships: Relationship[], personId: string): string[] {
+  const ids = new Set<string>();
+  for (const r of relationships) {
+    if ((r.type === "father" || r.type === "mother") && r.personB === personId) ids.add(r.personA);
+    if ((r.type === "son" || r.type === "daughter") && r.personA === personId) ids.add(r.personB);
+  }
+  return [...ids];
+}
+
+export function hasParentLink(relationships: Relationship[], parentId: string, childId: string) {
+  return relationships.some(
+    (r) =>
+      ((r.type === "father" || r.type === "mother") && r.personA === parentId && r.personB === childId) ||
+      ((r.type === "son" || r.type === "daughter") && r.personA === childId && r.personB === parentId)
+  );
+}
+
 export function getChildren(index: GraphIndex, id: string) {
   return (index.childrenOf.get(id) ?? []).map((cid) => index.people.get(cid)).filter(Boolean) as Person[];
 }

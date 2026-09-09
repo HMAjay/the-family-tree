@@ -42,7 +42,7 @@ export function BondEdge({
       />
       <EdgeLabelRenderer>
         <div
-          className="nodrag nopan pointer-events-none rounded-full border border-gold/70 bg-[#fbf6ec] px-2.5 py-0.5 text-[10px] font-medium tracking-wide text-maroon uppercase shadow-sm"
+          className="nodrag nopan pointer-events-none z-20 whitespace-nowrap rounded-full border border-gold/70 bg-[#fbf6ec] px-3 py-0.5 text-[11px] font-bold tracking-wide text-maroon uppercase shadow-sm"
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
