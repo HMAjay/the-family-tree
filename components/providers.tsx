@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AddPersonDialog } from "@/components/add-person-dialog";
 import { useFamilyStore } from "@/store/family-store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -8,5 +9,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     useFamilyStore.persist.rehydrate();
     useFamilyStore.getState().setHydrated();
   }, []);
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AddPersonDialog />
+    </>
+  );
 }

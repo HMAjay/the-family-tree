@@ -4,21 +4,22 @@ import {
   Background,
   Controls,
   ReactFlow,
+  applyNodeChanges,
   useReactFlow,
   type Edge,
   type Node,
+  type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LayoutGrid, Plus } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
 import { bondLabel, buildIndex, relationToSelected } from "@/lib/engine";
 import { layoutTree } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
-import { AddPersonDialog } from "@/components/add-person-dialog";
 import { HoverCard } from "@/components/hover-card";
 import type { Person } from "@/lib/types";
 
@@ -31,38 +32,45 @@ export function FamilyTreeCanvas() {
   const selectedId = useFamilyStore((s) => s.selectedId);
   const setSelected = useFamilyStore((s) => s.setSelected);
   const startEmpty = useFamilyStore((s) => s.startEmpty);
+  const setAddOpen = useFamilyStore((s) => s.setAddOpen);
+  const setNodePosition = useFamilyStore((s) => s.setNodePosition);
+  const setPositions = useFamilyStore((s) => s.setPositions);
   const router = useRouter();
-  const [addOpen, setAddOpen] = useState(false);
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [arrangeToken, setArrangeToken] = useState(0);
+  const arrangeSeen = useRef(0);
 
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const layout = useMemo(() => layoutTree(index), [index]);
-  const pos = useMemo(() => new Map(layout.map((n) => [n.id, n])), [layout]);
 
-  const nodes: Node[] = useMemo(
-    () =>
-      layout.map(
+  useEffect(() => {
+    const stored = useFamilyStore.getState().positions;
+    const force = arrangeToken !== arrangeSeen.current;
+    arrangeSeen.current = arrangeToken;
+    setNodes((prev) => {
+      const prevMap = new Map(prev.map((n) => [n.id, n]));
+      return layout.map(
         (n) =>
           ({
             id: n.id,
             type: "person",
-            position: { x: n.x, y: n.y },
+            position: force ? { x: n.x, y: n.y } : (stored[n.id] ?? prevMap.get(n.id)?.position ?? { x: n.x, y: n.y }),
             style: { width: 210, height: 250 },
             data: {
               person: n.person,
               relationLabel: relationToSelected(index, selectedId, n.id),
               highlighted: n.id === selectedId,
-              dimmed: Boolean(selectedId && n.id !== selectedId),
             },
           }) satisfies PersonFlowNode
-      ),
-    [layout, selectedId, index]
-  );
+      );
+    });
+  }, [layout, index, selectedId, arrangeToken]);
 
   const edges: Edge[] = useMemo(() => {
     const list: BondFlowEdge[] = [];
     const seen = new Set<string>();
-
+    const pos = new Map(nodes.map((n) => [n.id, n.position]));
     const pairKey = (a: string, b: string) => [a, b].sort().join("::");
 
     for (const p of people) {
@@ -123,7 +131,25 @@ export function FamilyTreeCanvas() {
       }
     }
     return list;
-  }, [people, index, pos]);
+  }, [people, index, nodes]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+
+  const onNodeDragStop = useCallback(
+    (_event: unknown, node: Node) => {
+      setNodePosition(node.id, node.position);
+    },
+    [setNodePosition]
+  );
+
+  const arrange = useCallback(() => {
+    const next: Record<string, { x: number; y: number }> = {};
+    for (const n of layout) next[n.id] = { x: n.x, y: n.y };
+    setPositions(next);
+    setArrangeToken((n) => n + 1);
+  }, [layout, setPositions]);
 
   if (!people.length) {
     return (
@@ -134,11 +160,14 @@ export function FamilyTreeCanvas() {
         </div>
         <h1 className="font-heading text-4xl text-maroon md:text-5xl">Every great story begins with someone.</h1>
         <p className="mt-3 max-w-md text-muted-foreground">Add the first member. Children, parents, and spouses can join from there.</p>
-        <Button type="button" className="mt-8 h-11 rounded-full bg-maroon px-8 text-ivory" onClick={() => setAddOpen(true)}>
-          <Plus data-icon="inline-start" />
+        <button
+          type="button"
+          className="relative z-10 mt-8 inline-flex h-11 items-center rounded-full bg-maroon px-8 text-sm text-ivory"
+          onClick={() => setAddOpen(true)}
+        >
+          <Plus className="mr-2 size-4" />
           Add the first member
-        </Button>
-        <AddPersonDialog open={addOpen} onOpenChange={setAddOpen} />
+        </button>
       </div>
     );
   }
@@ -152,14 +181,18 @@ export function FamilyTreeCanvas() {
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
             {selectedName
-              ? `Showing how everyone is related to ${selectedName}. Double-click a person to open their profile.`
-              : "Click a person to see how everyone else is related. Double-click to open a profile. Scroll to zoom."}
+              ? `Selected ${selectedName}. Drag anyone to move them. Double-click a person to open their profile.`
+              : "Click to select. Drag to move. Arrange restores grandparents above, siblings together, children below."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" className="rounded-full bg-maroon text-ivory" onClick={() => setAddOpen(true)}>
             <Plus data-icon="inline-start" />
             Add person
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={arrange}>
+            <LayoutGrid data-icon="inline-start" />
+            Arrange
           </Button>
           <Button size="sm" variant="ghost" className="rounded-full text-muted-foreground" onClick={() => startEmpty()}>
             New tree
@@ -173,6 +206,7 @@ export function FamilyTreeCanvas() {
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
           fitView
           minZoom={0.05}
           maxZoom={4}
@@ -181,9 +215,15 @@ export function FamilyTreeCanvas() {
           zoomOnDoubleClick={false}
           panOnScroll={false}
           panOnDrag
-          nodesDraggable={false}
+          nodesDraggable
+          nodesConnectable={false}
+          elementsSelectable
+          selectNodesOnDrag={false}
+          nodeDragThreshold={4}
           onNodeClick={(_, node) => setSelected(node.id)}
           onNodeDoubleClick={(_, node) => router.push(`/person/${node.id}`)}
+          onNodeDragStart={() => setHover(null)}
+          onNodeDragStop={onNodeDragStop}
           onNodeMouseEnter={(e, node) => {
             const person = people.find((p) => p.id === node.id);
             if (person) setHover({ person, x: e.clientX, y: e.clientY });
@@ -201,7 +241,7 @@ export function FamilyTreeCanvas() {
         >
           <Background color="#c4a35a" gap={32} size={1} />
           <Controls showInteractive={false} />
-          <CenterButton />
+          <CenterButton arrangeToken={arrangeToken} />
         </ReactFlow>
         {hover && (
           <HoverCard
@@ -212,13 +252,17 @@ export function FamilyTreeCanvas() {
           />
         )}
       </div>
-      <AddPersonDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
 
-function CenterButton() {
+function CenterButton({ arrangeToken }: { arrangeToken: number }) {
   const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (!arrangeToken) return;
+    const t = window.setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 30);
+    return () => window.clearTimeout(t);
+  }, [arrangeToken, fitView]);
   return (
     <div className="absolute top-3 right-3 z-10">
       <Button size="sm" variant="secondary" className="rounded-full" onClick={() => fitView({ padding: 0.2, duration: 600 })}>

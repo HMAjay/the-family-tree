@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,16 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Gender, RelationshipType } from "@/lib/types";
 import { useFamilyStore } from "@/store/family-store";
 
-export function AddPersonDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export function AddPersonDialog() {
   const people = useFamilyStore((s) => s.people);
   const selectedId = useFamilyStore((s) => s.selectedId);
   const addPerson = useFamilyStore((s) => s.addPerson);
+  const open = useFamilyStore((s) => s.addOpen);
+  const onOpenChange = useFamilyStore((s) => s.setAddOpen);
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>("female");
   const [year, setYear] = useState("");
@@ -65,10 +62,10 @@ export function AddPersonDialog({
     onOpenChange(false);
   }
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center">
       <button type="button" className="absolute inset-0 bg-[#2c1810]/40" aria-label="Close" onClick={() => onOpenChange(false)} />
       <div
         role="dialog"
@@ -187,7 +184,8 @@ export function AddPersonDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

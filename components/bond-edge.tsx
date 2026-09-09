@@ -23,7 +23,8 @@ export function BondEdge({
   style,
 }: EdgeProps<BondFlowEdge>) {
   const straight = data?.kind === "spouse" || data?.kind === "sibling";
-  const [edgePath, labelX, labelY] = straight
+  const mostlyLevel = Math.abs(sourceY - targetY) < 48;
+  const [edgePath, labelX, labelY] = straight && mostlyLevel
     ? getStraightPath({ sourceX, sourceY, targetX, targetY })
     : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
 

@@ -10,20 +10,19 @@ export type PersonNodeData = {
   person: Person;
   relationLabel: string;
   highlighted: boolean;
-  dimmed: boolean;
 };
 
 export type PersonFlowNode = Node<PersonNodeData, "person">;
 
 function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
   if (!data?.person) return null;
-  const { person, relationLabel, highlighted, dimmed } = data;
+  const { person, relationLabel, highlighted } = data;
   return (
     <div
       className={cn(
-        "gold-border w-[200px] cursor-pointer overflow-hidden rounded-2xl border bg-card text-left transition duration-300",
-        (selected || highlighted) && "ring-2 ring-gold shadow-[0_0_20px_rgba(196,163,90,0.45)]",
-        dimmed && "opacity-40"
+        "gold-border w-[200px] cursor-grab overflow-hidden rounded-2xl border bg-card text-left active:cursor-grabbing",
+        (selected || highlighted) &&
+          "outline outline-[3px] outline-offset-2 outline-maroon shadow-[0_0_0_6px_rgba(196,163,90,0.45)]"
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-gold !size-2 !border-none" />

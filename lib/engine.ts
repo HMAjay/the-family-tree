@@ -448,10 +448,27 @@ export function generationMap(index: GraphIndex): Map<string, number> {
     gen.set(id, parentDepth(id, new Set()));
   }
 
-  for (let pass = 0; pass < 8; pass++) {
+  const isParentChild = (a: string, b: string) =>
+    (index.parentsOf.get(a) ?? []).includes(b) || (index.parentsOf.get(b) ?? []).includes(a);
+
+  for (let pass = 0; pass < 12; pass++) {
     let changed = false;
     for (const id of index.people.keys()) {
       for (const s of index.spousesOf.get(id) ?? []) {
+        const a = gen.get(id) ?? 0;
+        const b = gen.get(s) ?? 0;
+        const m = Math.max(a, b);
+        if (a !== m) {
+          gen.set(id, m);
+          changed = true;
+        }
+        if (b !== m) {
+          gen.set(s, m);
+          changed = true;
+        }
+      }
+      for (const s of index.siblingsOf.get(id) ?? []) {
+        if (isParentChild(id, s)) continue;
         const a = gen.get(id) ?? 0;
         const b = gen.get(s) ?? 0;
         const m = Math.max(a, b);

@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, Plus, TreeDeciduous, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AddPersonDialog } from "@/components/add-person-dialog";
 import { cn } from "@/lib/utils";
+import { useFamilyStore } from "@/store/family-store";
 
 export function SiteNav() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const setAddOpen = useFamilyStore((s) => s.setAddOpen);
 
   return (
     <>
@@ -55,7 +55,6 @@ export function SiteNav() {
           </div>
         </div>
       )}
-      <AddPersonDialog open={addOpen} onOpenChange={setAddOpen} />
     </>
   );
 }
