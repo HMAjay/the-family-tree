@@ -23,6 +23,7 @@ import { NodeContextMenu } from "@/components/node-context-menu";
 import { buildIndex, relationToSelected } from "@/lib/engine";
 import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
+import { SaveTreeButton } from "@/components/save-tree-button";
 import { HoverCard } from "@/components/hover-card";
 import type { Person } from "@/lib/types";
 
@@ -324,6 +325,7 @@ export function FamilyTreeCanvas() {
             <Plus data-icon="inline-start" />
             Add person
           </Button>
+          <SaveTreeButton />
           <Button size="sm" variant="outline" className="rounded-full" onClick={arrange}>
             <LayoutGrid data-icon="inline-start" />
             Arrange

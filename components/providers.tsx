@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AuthProvider } from "@/components/auth-provider";
 import { AddPersonDialog } from "@/components/add-person-dialog";
 import { EditBondDialog } from "@/components/edit-bond-dialog";
 import { EditPersonDialog } from "@/components/edit-person-dialog";
@@ -13,11 +14,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     useFamilyStore.getState().setHydrated();
   }, []);
   return (
-    <>
+    <AuthProvider>
       {children}
       <AddPersonDialog />
       <EditPersonDialog />
       <EditBondDialog />
-    </>
+    </AuthProvider>
   );
 }

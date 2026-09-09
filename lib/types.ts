@@ -111,6 +111,13 @@ export interface FamilySnapshot {
   familyName: string;
 }
 
+export type NodePosition = { x: number; y: number };
+
+export type SavedTreePayload = FamilySnapshot & {
+  positions: Record<string, NodePosition>;
+  layoutRevision: number;
+};
+
 export interface PathStep {
   fromId: string;
   toId: string;

@@ -4,7 +4,8 @@ export default function PrivacyPage() {
       <h1 className="font-heading text-5xl text-maroon">Privacy</h1>
       <div className="ornament-line my-6" />
       <p className="leading-relaxed">
-        Your family tree is stored in this browser on your device. Nothing is sent to a server.
+        Your working draft stays in this browser. To keep a tree, create an account and save it. Saved trees are stored
+        on this app&apos;s server for your login only.
       </p>
     </div>
   );

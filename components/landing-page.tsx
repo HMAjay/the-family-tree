@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/components/auth-provider";
 import { BanyanTree } from "@/components/banyan-tree";
 import { useFamilyStore } from "@/store/family-store";
 
 export function LandingPage() {
   const router = useRouter();
   const people = useFamilyStore((s) => s.people);
+  const { user } = useAuth();
   const hasTree = people.length > 0;
 
   return (
@@ -42,10 +44,10 @@ export function LandingPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        onClick={() => router.push("/tree")}
+        onClick={() => router.push(user ? "/dashboard" : "/tree")}
         className="mt-8 inline-flex h-11 items-center rounded-full bg-maroon px-8 text-sm text-ivory hover:bg-maroon/90"
       >
-        {hasTree ? "Open your family tree" : "Create your family tree"}
+        {user ? "Open your trees" : hasTree ? "Open your family tree" : "Create your family tree"}
       </motion.button>
       <div className="mt-8 w-full">
         <BanyanTree reveal={1} />

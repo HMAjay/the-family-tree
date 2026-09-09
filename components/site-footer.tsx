@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
   const path = usePathname();
-  if (path === "/tree") return null;
+  if (path === "/tree" || path === "/login" || path === "/signup") return null;
   return (
     <footer className="mt-auto border-t border-gold/30 bg-[#3d1a20] px-6 py-12 text-center text-[#f4ead8]">
       <p className="font-heading text-3xl italic">We are because they were.</p>

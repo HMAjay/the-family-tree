@@ -5,9 +5,16 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { emptyFamily } from "@/lib/empty-family";
 import { hasParentLink, parentIdsFromRelationships } from "@/lib/engine";
-import type { FamilySnapshot, Person, Relationship, RelationshipType } from "@/lib/types";
+import type {
+  FamilySnapshot,
+  NodePosition,
+  Person,
+  Relationship,
+  RelationshipType,
+  SavedTreePayload,
+} from "@/lib/types";
 
-export type NodePosition = { x: number; y: number };
+export type { NodePosition } from "@/lib/types";
 
 type TreeSnapshot = FamilySnapshot & {
   positions: Record<string, NodePosition>;
@@ -60,6 +67,9 @@ interface FamilyState extends FamilySnapshot {
   startEmpty: () => void;
   applySavedTreeMigration: () => void;
   layoutRevision: number;
+  remoteTreeId: string | null;
+  loadSavedTree: (id: string, payload: SavedTreePayload) => void;
+  exportPayload: () => SavedTreePayload;
 }
 
 export const useFamilyStore = create<FamilyState>()(
@@ -76,6 +86,7 @@ export const useFamilyStore = create<FamilyState>()(
       return {
         ...emptyFamily(),
         layoutRevision: 0,
+        remoteTreeId: null,
         hydrated: false,
         selectedId: null,
         addOpen: false,
@@ -215,6 +226,7 @@ export const useFamilyStore = create<FamilyState>()(
           set({
             ...emptyFamily("Our Family"),
             layoutRevision: 5,
+            remoteTreeId: null,
             selectedId: null,
             positions: {},
             bondEdit: null,
@@ -240,6 +252,42 @@ export const useFamilyStore = create<FamilyState>()(
             ),
           });
         },
+        loadSavedTree: (id, payload) => {
+          set({
+            familyName: payload.familyName,
+            people: payload.people,
+            relationships: payload.relationships,
+            memories: payload.memories,
+            events: payload.events,
+            heritage: payload.heritage,
+            viewerId: payload.viewerId,
+            positions: payload.positions ?? {},
+            layoutRevision: payload.layoutRevision ?? 5,
+            remoteTreeId: id,
+            selectedId: null,
+            past: [],
+            future: [],
+            bondEdit: null,
+            addOpen: false,
+            addForId: null,
+            addRelType: null,
+            editingId: null,
+          });
+        },
+        exportPayload: () => {
+          const s = get();
+          return {
+            familyName: s.familyName,
+            people: s.people,
+            relationships: s.relationships,
+            memories: s.memories,
+            events: s.events,
+            heritage: s.heritage,
+            viewerId: s.viewerId,
+            positions: s.positions,
+            layoutRevision: s.layoutRevision,
+          };
+        },
       };
     },
     {
@@ -250,6 +298,7 @@ export const useFamilyStore = create<FamilyState>()(
         viewerId: s.viewerId,
         familyName: s.familyName,
         layoutRevision: s.layoutRevision,
+        remoteTreeId: s.remoteTreeId,
         positions: s.positions,
         memories: s.memories,
         events: s.events,
