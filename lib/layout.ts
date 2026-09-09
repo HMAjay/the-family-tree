@@ -19,174 +19,158 @@ function personKey(p: Person) {
   return `${String(yearOf(p) ?? 9999).padStart(4, "0")}-${p.name}`;
 }
 
-function find(parent: Map<string, string>, id: string): string {
-  let cur = id;
-  while (parent.get(cur) !== cur) {
-    const next = parent.get(cur) ?? cur;
-    parent.set(cur, parent.get(next) ?? next);
-    cur = next;
+function sortCouple(members: Person[]): Person[] {
+  const unique: Person[] = [];
+  const seen = new Set<string>();
+  for (const p of members) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    unique.push(p);
   }
-  return cur;
+  const male = unique.filter((p) => p.gender === "male").sort((a, b) => personKey(a).localeCompare(personKey(b)));
+  const female = unique.filter((p) => p.gender === "female").sort((a, b) => personKey(a).localeCompare(personKey(b)));
+  const other = unique.filter((p) => p.gender === "other").sort((a, b) => personKey(a).localeCompare(personKey(b)));
+  if (male.length && female.length) return [...male, ...female, ...other];
+  return unique.sort((a, b) => personKey(a).localeCompare(personKey(b)));
 }
 
-function union(parent: Map<string, string>, a: string, b: string) {
-  const ra = find(parent, a);
-  const rb = find(parent, b);
-  if (ra !== rb) parent.set(ra, rb);
-}
-
-function orderCluster(index: GraphIndex, members: Person[]): Person[] {
-  const remaining = new Set(members.map((p) => p.id));
-  const byId = new Map(members.map((p) => [p.id, p]));
-  const ordered: Person[] = [];
-
-  const take = (id: string) => {
-    if (!remaining.has(id)) return;
-    remaining.delete(id);
-    const person = byId.get(id);
-    if (person) ordered.push(person);
-  };
-
-  const sorted = [...members].sort((a, b) => personKey(a).localeCompare(personKey(b)));
-  for (const p of sorted) {
-    if (!remaining.has(p.id)) continue;
-    take(p.id);
-    for (const sid of index.spousesOf.get(p.id) ?? []) take(sid);
-    for (const sib of [...(index.siblingsOf.get(p.id) ?? [])].sort((a, b) => {
-      const pa = byId.get(a);
-      const pb = byId.get(b);
-      return personKey(pa ?? { id: a, name: a, gender: "other" }).localeCompare(personKey(pb ?? { id: b, name: b, gender: "other" }));
-    })) {
-      take(sib);
-      for (const sid of index.spousesOf.get(sib) ?? []) take(sid);
+function familyUnit(index: GraphIndex, person: Person, gen: number, gens: Map<string, number>): Person[] {
+  const ids = new Set<string>([person.id]);
+  const visit = [...ids];
+  while (visit.length) {
+    const id = visit.pop()!;
+    for (const sid of index.spousesOf.get(id) ?? []) {
+      if (ids.has(sid)) continue;
+      if ((gens.get(sid) ?? gen) !== gen) continue;
+      if (!index.people.has(sid)) continue;
+      ids.add(sid);
+      visit.push(sid);
     }
   }
-  return ordered;
+  return sortCouple([...ids].map((id) => index.people.get(id)).filter((p): p is Person => Boolean(p)));
 }
 
-function separateRow(nodes: LaidOutNode[]) {
-  const row = [...nodes].sort((a, b) => a.x - b.x);
-  for (let i = 1; i < row.length; i++) {
-    const minX = row[i - 1].x + STEP;
-    if (row[i].x < minX) row[i].x = minX;
+function childUnitsOf(index: GraphIndex, unit: Person[], unitGen: number, gens: Map<string, number>): Person[][] {
+  const kids: Person[] = [];
+  const seenKid = new Set<string>();
+  for (const p of unit) {
+    for (const cid of index.childrenOf.get(p.id) ?? []) {
+      if (seenKid.has(cid)) continue;
+      const child = index.people.get(cid);
+      if (!child) continue;
+      if ((gens.get(cid) ?? unitGen + 1) < unitGen + 1) continue;
+      seenKid.add(cid);
+      kids.push(child);
+    }
   }
+  kids.sort((a, b) => personKey(a).localeCompare(personKey(b)));
+
+  const units: Person[][] = [];
+  const used = new Set<string>();
+  for (const kid of kids) {
+    if (used.has(kid.id)) continue;
+    const next = familyUnit(index, kid, gens.get(kid.id) ?? unitGen + 1, gens);
+    for (const m of next) used.add(m.id);
+    units.push(next);
+  }
+  return units;
+}
+
+function layoutUnit(
+  index: GraphIndex,
+  unit: Person[],
+  gen: number,
+  y: number,
+  gens: Map<string, number>
+): { width: number; pos: Map<string, { x: number; y: number }> } {
+  const couple = sortCouple(unit);
+  const coupleWidth = (couple.length - 1) * STEP + NODE_W;
+  const kids = childUnitsOf(index, couple, gen, gens);
+  const pos = new Map<string, { x: number; y: number }>();
+
+  if (!kids.length) {
+    couple.forEach((p, i) => pos.set(p.id, { x: i * STEP, y }));
+    return { width: coupleWidth, pos };
+  }
+
+  const packed: { width: number; pos: Map<string, { x: number; y: number }>; offset: number }[] = [];
+  let cursor = 0;
+  for (const cu of kids) {
+    const childGen = gens.get(cu[0].id) ?? gen + 1;
+    const sub = layoutUnit(index, cu, childGen, y + NODE_H + GAP_Y, gens);
+    packed.push({ ...sub, offset: cursor });
+    cursor += sub.width + GAP_X;
+  }
+  const childrenWidth = cursor - GAP_X;
+  const width = Math.max(coupleWidth, childrenWidth);
+  const coupleStart = (width - coupleWidth) / 2;
+  const childrenStart = (width - childrenWidth) / 2;
+
+  couple.forEach((p, i) => pos.set(p.id, { x: coupleStart + i * STEP, y }));
+  for (const block of packed) {
+    for (const [id, p] of block.pos) {
+      pos.set(id, { x: p.x + childrenStart + block.offset, y: p.y });
+    }
+  }
+  return { width, pos };
 }
 
 export function layoutTree(index: GraphIndex): LaidOutNode[] {
+  if (!index.people.size) return [];
   const gens = generationMap(index);
-  const byGen = new Map<number, Person[]>();
-  for (const person of index.people.values()) {
-    const g = gens.get(person.id) ?? 0;
-    const list = byGen.get(g) ?? [];
-    list.push(person);
-    byGen.set(g, list);
+  const placed = new Set<string>();
+  const merged = new Map<string, { x: number; y: number }>();
+
+  const roots = [...index.people.values()]
+    .filter((p) => (index.parentsOf.get(p.id) ?? []).length === 0)
+    .sort((a, b) => personKey(a).localeCompare(personKey(b)));
+
+  const rootUnits: Person[][] = [];
+  const seenRoot = new Set<string>();
+  for (const r of roots) {
+    if (seenRoot.has(r.id)) continue;
+    const unit = familyUnit(index, r, gens.get(r.id) ?? 0, gens);
+    for (const m of unit) seenRoot.add(m.id);
+    rootUnits.push(unit);
   }
 
-  const maxGen = byGen.size ? Math.max(...byGen.keys()) : 0;
+  let xOff = 0;
+  for (const unit of rootUnits) {
+    const gen = Math.min(...unit.map((p) => gens.get(p.id) ?? 0));
+    const sub = layoutUnit(index, unit, gen, gen * (NODE_H + GAP_Y), gens);
+    for (const [id, p] of sub.pos) {
+      merged.set(id, { x: p.x + xOff, y: p.y });
+      placed.add(id);
+    }
+    xOff += sub.width + GAP_X * 1.25;
+  }
+
+  const leftovers = [...index.people.values()].filter((p) => !placed.has(p.id));
+  for (const p of leftovers.sort((a, b) => personKey(a).localeCompare(personKey(b)))) {
+    if (placed.has(p.id)) continue;
+    const gen = gens.get(p.id) ?? 0;
+    const unit = familyUnit(index, p, gen, gens);
+    const sub = layoutUnit(index, unit, gen, gen * (NODE_H + GAP_Y), gens);
+    for (const [id, pos] of sub.pos) {
+      merged.set(id, { x: pos.x + xOff, y: pos.y });
+      placed.add(id);
+    }
+    xOff += sub.width + GAP_X;
+  }
+
+  const xs = [...merged.values()].map((p) => p.x);
+  const minX = Math.min(...xs, 0);
   const nodes: LaidOutNode[] = [];
-  const byId = new Map<string, LaidOutNode>();
-
-  for (let g = 0; g <= maxGen; g++) {
-    const people = byGen.get(g) ?? [];
-    if (!people.length) continue;
-
-    const parent = new Map<string, string>();
-    for (const p of people) parent.set(p.id, p.id);
-    for (const p of people) {
-      for (const s of index.spousesOf.get(p.id) ?? []) {
-        if (people.some((x) => x.id === s)) union(parent, p.id, s);
-      }
-      for (const s of index.siblingsOf.get(p.id) ?? []) {
-        if (people.some((x) => x.id === s)) union(parent, p.id, s);
-      }
-    }
-
-    const clusters = new Map<string, Person[]>();
-    for (const p of people) {
-      const root = find(parent, p.id);
-      const list = clusters.get(root) ?? [];
-      list.push(p);
-      clusters.set(root, list);
-    }
-
-    const orderedClusters = [...clusters.values()]
-      .map((members) => orderCluster(index, members))
-      .sort((a, b) => {
-        const parentXs = (group: Person[]) => {
-          const xs: number[] = [];
-          for (const p of group) {
-            for (const pid of index.parentsOf.get(p.id) ?? []) {
-              const n = byId.get(pid);
-              if (n) xs.push(n.x);
-            }
-          }
-          if (!xs.length) return null;
-          return xs.reduce((s, v) => s + v, 0) / xs.length;
-        };
-        const ax = parentXs(a);
-        const bx = parentXs(b);
-        if (ax != null && bx != null && ax !== bx) return ax - bx;
-        return personKey(a[0]).localeCompare(personKey(b[0]));
-      });
-
-    let x = 0;
-    for (const cluster of orderedClusters) {
-      for (const person of cluster) {
-        const node: LaidOutNode = {
-          id: person.id,
-          person,
-          x,
-          y: g * (NODE_H + GAP_Y),
-          generation: g,
-        };
-        nodes.push(node);
-        byId.set(person.id, node);
-        x += STEP;
-      }
-      x += GAP_X * 0.35;
-    }
+  for (const person of index.people.values()) {
+    const p = merged.get(person.id) ?? { x: 0, y: (gens.get(person.id) ?? 0) * (NODE_H + GAP_Y) };
+    nodes.push({
+      id: person.id,
+      person,
+      x: p.x - minX,
+      y: p.y,
+      generation: gens.get(person.id) ?? 0,
+    });
   }
-
-  for (let pass = 0; pass < 6; pass++) {
-    for (const node of nodes) {
-      const kids = (index.childrenOf.get(node.id) ?? [])
-        .map((id) => byId.get(id))
-        .filter((n): n is LaidOutNode => Boolean(n));
-      if (!kids.length) continue;
-      const mid = (Math.min(...kids.map((k) => k.x)) + Math.max(...kids.map((k) => k.x))) / 2;
-      const spouse = (index.spousesOf.get(node.id) ?? [])
-        .map((id) => byId.get(id))
-        .find((n) => n && n.generation === node.generation);
-      if (spouse) {
-        const coupleMid = (node.x + spouse.x) / 2;
-        const dx = (mid - coupleMid) * 0.55;
-        node.x += dx;
-        spouse.x += dx;
-      } else {
-        node.x += (mid - node.x) * 0.55;
-      }
-    }
-
-    for (let g = 0; g <= maxGen; g++) {
-      separateRow(nodes.filter((n) => n.generation === g));
-    }
-
-    for (const node of nodes) {
-      const parents = (index.parentsOf.get(node.id) ?? [])
-        .map((id) => byId.get(id))
-        .filter((n): n is LaidOutNode => Boolean(n));
-      if (!parents.length) continue;
-      const mid = (Math.min(...parents.map((p) => p.x)) + Math.max(...parents.map((p) => p.x))) / 2;
-      node.x += (mid - node.x) * 0.25;
-    }
-
-    for (let g = 0; g <= maxGen; g++) {
-      separateRow(nodes.filter((n) => n.generation === g));
-    }
-  }
-
-  const minX = Math.min(...nodes.map((n) => n.x), 0);
-  for (const n of nodes) n.x -= minX;
   return nodes;
 }
 

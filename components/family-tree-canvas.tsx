@@ -151,7 +151,7 @@ export function FamilyTreeCanvas() {
         const shareParent = (index.parentsOf.get(p.id) ?? []).some((parent) =>
           (index.parentsOf.get(sibId) ?? []).includes(parent)
         );
-        if (shareParent) continue;
+        if (shareParent && !touchesSelected(p.id, sibId)) continue;
         const key = pairKey(p.id, sibId);
         if (seen.has(`sib-${key}`)) continue;
         seen.add(`sib-${key}`);
@@ -254,8 +254,8 @@ export function FamilyTreeCanvas() {
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
             {selectedName
-              ? `Selected ${selectedName}. Double-click to open their profile. Right-click to add a relative.`
-              : "Double-click a person for their profile. Right-click to add someone related. Drop onto a person to change a bond."}
+              ? `Selected ${selectedName}. Bonds to parents, siblings, and closer kin are labeled. Double-click for their profile.`
+              : "Click a person to see father, mother, sibling, and other bonds. Double-click for a profile."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
