@@ -1,27 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { ADD_RELATION_ACTIONS } from "@/lib/relation-options";
 import type { RelationshipType } from "@/lib/types";
-
-const ACTIONS: { type: RelationshipType; label: string }[] = [
-  { type: "son", label: "Add a son" },
-  { type: "daughter", label: "Add a daughter" },
-  { type: "father", label: "Add a father" },
-  { type: "mother", label: "Add a mother" },
-  { type: "husband", label: "Add a husband" },
-  { type: "wife", label: "Add a wife" },
-  { type: "brother", label: "Add a brother" },
-  { type: "sister", label: "Add a sister" },
-  { type: "grandfather", label: "Add a grandfather" },
-  { type: "grandmother", label: "Add a grandmother" },
-  { type: "grandson", label: "Add a grandson" },
-  { type: "granddaughter", label: "Add a granddaughter" },
-  { type: "uncle", label: "Add an uncle" },
-  { type: "aunt", label: "Add an aunt" },
-  { type: "nephew", label: "Add a nephew" },
-  { type: "niece", label: "Add a niece" },
-  { type: "cousin", label: "Add a cousin" },
-];
 
 export function NodeContextMenu({
   name,
@@ -29,6 +10,7 @@ export function NodeContextMenu({
   y,
   onAdd,
   onEdit,
+  onDelete,
   onClose,
 }: {
   name: string;
@@ -36,6 +18,7 @@ export function NodeContextMenu({
   y: number;
   onAdd: (type: RelationshipType) => void;
   onEdit: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
   if (typeof document === "undefined") return null;
@@ -63,10 +46,18 @@ export function NodeContextMenu({
           >
             Edit details
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="block w-full rounded-lg px-2 py-2 text-left text-sm text-red-800 hover:bg-red-50"
+            onClick={onDelete}
+          >
+            Delete from tree
+          </button>
         </div>
         <p className="shrink-0 px-3 pt-2 pb-1 text-[11px] tracking-wide text-gold uppercase">Add related</p>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-2">
-          {ACTIONS.map((action) => (
+          {ADD_RELATION_ACTIONS.map((action) => (
             <button
               key={action.type}
               type="button"

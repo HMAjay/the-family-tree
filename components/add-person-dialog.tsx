@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Gender, RelationshipType } from "@/lib/types";
+import { ADD_RELATION_ACTIONS } from "@/lib/relation-options";
 import { useFamilyStore } from "@/store/family-store";
 
 export function AddPersonDialog() {
@@ -40,27 +41,7 @@ export function AddPersonDialog() {
 
   const sorted = useMemo(() => [...people].sort((a, b) => a.name.localeCompare(b.name)), [people]);
 
-  const relationChoices = people.length
-    ? ([
-        "son",
-        "daughter",
-        "father",
-        "mother",
-        "husband",
-        "wife",
-        "brother",
-        "sister",
-        "grandfather",
-        "grandmother",
-        "grandson",
-        "granddaughter",
-        "uncle",
-        "aunt",
-        "nephew",
-        "niece",
-        "cousin",
-      ] as RelationshipType[])
-    : [];
+  const relationChoices = people.length ? ADD_RELATION_ACTIONS.map((a) => a.type) : [];
 
   function reset() {
     setName("");
@@ -217,7 +198,18 @@ export function AddPersonDialog() {
 }
 
 function genderFromBond(type: RelationshipType): Gender {
-  return ["son", "father", "husband", "brother", "grandfather", "grandson", "uncle", "nephew"].includes(type)
+  return [
+    "son",
+    "father",
+    "husband",
+    "brother",
+    "co-brother",
+    "son-in-law",
+    "grandfather",
+    "grandson",
+    "uncle",
+    "nephew",
+  ].includes(type)
     ? "male"
     : "female";
 }

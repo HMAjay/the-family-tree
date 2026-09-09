@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   buildIndex,
   getChildren,
@@ -18,6 +19,8 @@ export function PersonProfile({ id }: { id: string }) {
   const relationships = useFamilyStore((s) => s.relationships);
   const setSelected = useFamilyStore((s) => s.setSelected);
   const openEdit = useFamilyStore((s) => s.openEdit);
+  const removePerson = useFamilyStore((s) => s.removePerson);
+  const router = useRouter();
   const person = people.find((p) => p.id === id);
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
 
@@ -69,6 +72,17 @@ export function PersonProfile({ id }: { id: string }) {
               >
                 Back to the tree
               </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm(`Remove ${person.name} from the tree? Their bonds will be removed too.`)) return;
+                  removePerson(person.id);
+                  router.push("/tree");
+                }}
+                className="inline-flex rounded-full border border-red-300 px-4 py-2 text-sm text-red-800"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

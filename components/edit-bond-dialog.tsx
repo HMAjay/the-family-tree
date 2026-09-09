@@ -6,18 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { buildIndex } from "@/lib/engine";
 import type { Person, Relationship, RelationshipType } from "@/lib/types";
+import { BOND_CHOICES } from "@/lib/relation-options";
 import { useFamilyStore } from "@/store/family-store";
-
-const BOND_CHOICES: RelationshipType[] = [
-  "son",
-  "daughter",
-  "father",
-  "mother",
-  "husband",
-  "wife",
-  "brother",
-  "sister",
-];
 
 function invertBond(type: RelationshipType, personGender: "female" | "male" | "other"): RelationshipType {
   if (type === "father" || type === "mother") return personGender === "female" ? "daughter" : "son";
@@ -25,6 +15,8 @@ function invertBond(type: RelationshipType, personGender: "female" | "male" | "o
   if (type === "husband") return "wife";
   if (type === "wife") return "husband";
   if (type === "brother" || type === "sister") return personGender === "female" ? "sister" : "brother";
+  if (type === "co-brother" || type === "co-sister") return personGender === "female" ? "co-sister" : "co-brother";
+  if (type === "son-in-law" || type === "daughter-in-law") return personGender === "female" ? "mother" : "father";
   return type;
 }
 

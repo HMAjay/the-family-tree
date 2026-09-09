@@ -13,7 +13,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutGrid, Plus } from "lucide-react";
+import { LayoutGrid, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,12 @@ export function FamilyTreeCanvas() {
   const setBondEdit = useFamilyStore((s) => s.setBondEdit);
   const openAddRelated = useFamilyStore((s) => s.openAddRelated);
   const openEdit = useFamilyStore((s) => s.openEdit);
+  const removePerson = useFamilyStore((s) => s.removePerson);
+  const undo = useFamilyStore((s) => s.undo);
+  const redo = useFamilyStore((s) => s.redo);
+  const canUndo = useFamilyStore((s) => s.past.length > 0);
+  const canRedo = useFamilyStore((s) => s.future.length > 0);
+  const positions = useFamilyStore((s) => s.positions);
   const router = useRouter();
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -95,7 +101,7 @@ export function FamilyTreeCanvas() {
           }) satisfies PersonFlowNode
       );
     });
-  }, [layout, index, selectedId, arrangeToken]);
+  }, [layout, index, selectedId, arrangeToken, positions]);
 
   const edges: Edge[] = useMemo(() => {
     const list: BondFlowEdge[] = [];
@@ -113,6 +119,8 @@ export function FamilyTreeCanvas() {
       for (const childId of index.childrenOf.get(p.id) ?? []) {
         const child = index.people.get(childId);
         if (!child) continue;
+        if ((index.spousesOf.get(p.id) ?? []).includes(childId)) continue;
+        if ((index.siblingsOf.get(p.id) ?? []).includes(childId)) continue;
         const key = `pc-${p.id}-${childId}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -134,6 +142,7 @@ export function FamilyTreeCanvas() {
         seen.add(`sp-${key}`);
         const spouse = index.people.get(spId);
         if (!spouse) continue;
+        if ((index.siblingsOf.get(p.id) ?? []).includes(spId)) continue;
         const leftIsP = (pos.get(p.id)?.x ?? 0) <= (pos.get(spId)?.x ?? 0);
         const active = touchesSelected(p.id, spId);
         list.push({
@@ -167,6 +176,25 @@ export function FamilyTreeCanvas() {
           targetHandle: "left",
           type: "bond",
           data: { kind: "sibling", label: labelTowardSelected(p.id, sibId), showLabel: active, active },
+        });
+      }
+
+      for (const cobId of index.coBrothersOf.get(p.id) ?? []) {
+        if (!touchesSelected(p.id, cobId)) continue;
+        const key = pairKey(p.id, cobId);
+        if (seen.has(`cob-${key}`) || seen.has(`sp-${key}`) || seen.has(`sib-${key}`)) continue;
+        seen.add(`cob-${key}`);
+        const cob = index.people.get(cobId);
+        if (!cob) continue;
+        const leftIsP = (pos.get(p.id)?.x ?? 0) <= (pos.get(cobId)?.x ?? 0);
+        list.push({
+          id: `cob-${key}`,
+          source: leftIsP ? p.id : cobId,
+          target: leftIsP ? cobId : p.id,
+          sourceHandle: "right",
+          targetHandle: "left",
+          type: "bond",
+          data: { kind: "sibling", label: labelTowardSelected(p.id, cobId), showLabel: true, active: true },
         });
       }
     }
@@ -208,7 +236,6 @@ export function FamilyTreeCanvas() {
       setDropTargetId(null);
       if (over && origin) {
         setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: origin.position } : n)));
-        setNodePosition(node.id, origin.position);
         setBondEdit({ fromId: node.id, toId: over.id });
         return;
       }
@@ -223,6 +250,39 @@ export function FamilyTreeCanvas() {
     setPositions(next);
     setArrangeToken((n) => n + 1);
   }, [layout, setPositions]);
+
+  const deleteSelected = useCallback(() => {
+    if (!selectedId) return;
+    const name = index.people.get(selectedId)?.name ?? "this person";
+    if (!window.confirm(`Remove ${name} from the tree? Their bonds will be removed too.`)) return;
+    removePerson(selectedId);
+    setMenu(null);
+  }, [selectedId, index, removePerson]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      const key = event.key.toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && key === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
+        event.preventDefault();
+        deleteSelected();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo, selectedId, deleteSelected]);
 
   if (!people.length) {
     return (
@@ -266,6 +326,24 @@ export function FamilyTreeCanvas() {
           <Button size="sm" variant="outline" className="rounded-full" onClick={arrange}>
             <LayoutGrid data-icon="inline-start" />
             Arrange
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" disabled={!canUndo} onClick={() => undo()}>
+            <Undo2 data-icon="inline-start" />
+            Undo
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" disabled={!canRedo} onClick={() => redo()}>
+            <Redo2 data-icon="inline-start" />
+            Redo
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            disabled={!selectedId}
+            onClick={deleteSelected}
+          >
+            <Trash2 data-icon="inline-start" />
+            Delete
           </Button>
           <Button size="sm" variant="ghost" className="rounded-full text-muted-foreground" onClick={() => startEmpty()}>
             New tree
@@ -340,6 +418,13 @@ export function FamilyTreeCanvas() {
             onEdit={() => {
               openEdit(menu.id);
               setMenu(null);
+            }}
+            onDelete={() => {
+              setSelected(menu.id);
+              const name = index.people.get(menu.id)?.name ?? "this person";
+              setMenu(null);
+              if (!window.confirm(`Remove ${name} from the tree? Their bonds will be removed too.`)) return;
+              removePerson(menu.id);
             }}
             onAdd={(type) => {
               openAddRelated(menu.id, type);

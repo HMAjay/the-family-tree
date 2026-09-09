@@ -13,6 +13,7 @@ export interface GraphIndex {
   childrenOf: Map<string, string[]>;
   spousesOf: Map<string, string[]>;
   siblingsOf: Map<string, string[]>;
+  coBrothersOf: Map<string, string[]>;
 }
 
 function push(map: Map<string, string[]>, key: string, value: string) {
@@ -34,19 +35,56 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
   const childrenOf = new Map<string, string[]>();
   const spousesOf = new Map<string, string[]>();
   const siblingsOf = new Map<string, string[]>();
+  const coBrothersOf = new Map<string, string[]>();
 
   const addParent = (parentId: string, childId: string) => {
+    if (parentId === childId) return;
+    if ((spousesOf.get(parentId) ?? []).includes(childId)) return;
+    if (isAncestor(childId, parentId)) return;
+    if (isAncestor(parentId, childId)) return;
     push(parentsOf, childId, parentId);
     push(childrenOf, parentId, childId);
   };
   const addSpouse = (a: string, b: string) => {
+    if (a === b) return;
+    if ((siblingsOf.get(a) ?? []).includes(b)) return;
+    if ((parentsOf.get(a) ?? []).includes(b) || (parentsOf.get(b) ?? []).includes(a)) return;
     push(spousesOf, a, b);
     push(spousesOf, b, a);
   };
   const addSibling = (a: string, b: string) => {
+    if (a === b) return;
+    if ((spousesOf.get(a) ?? []).includes(b)) return;
+    if ((parentsOf.get(a) ?? []).includes(b) || (parentsOf.get(b) ?? []).includes(a)) return;
+    if ((childrenOf.get(a) ?? []).includes(b) || (childrenOf.get(b) ?? []).includes(a)) return;
+    if (isAncestor(a, b) || isAncestor(b, a)) return;
     push(siblingsOf, a, b);
     push(siblingsOf, b, a);
   };
+
+  function isAncestor(olderId: string, youngerId: string) {
+    const seen = new Set<string>();
+    const stack = [...(parentsOf.get(youngerId) ?? [])];
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (id === olderId) return true;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      stack.push(...(parentsOf.get(id) ?? []));
+    }
+    return false;
+  }
+  const addCoBrother = (a: string, b: string) => {
+    if (a === b) return;
+    push(coBrothersOf, a, b);
+    push(coBrothersOf, b, a);
+  };
+  const dropLink = (map: Map<string, string[]>, a: string, b: string) => {
+    map.set(a, (map.get(a) ?? []).filter((id) => id !== b));
+    map.set(b, (map.get(b) ?? []).filter((id) => id !== a));
+  };
+
+  const delayed: Relationship[] = [];
 
   for (const rel of relationships) {
     const { personA: a, personB: b, type } = rel;
@@ -67,75 +105,97 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
       case "sister":
         addSibling(a, b);
         break;
+      case "co-brother":
+      case "co-sister":
+        addCoBrother(a, b);
+        break;
       case "uncle":
-      case "aunt": {
-        const parents = parentsOf.get(b) ?? [];
-        if (parents.length) {
-          for (const p of parents) addSibling(a, p);
-        } else {
-          addSibling(a, b);
-        }
-        break;
-      }
+      case "aunt":
       case "nephew":
-      case "niece": {
-        const parents = parentsOf.get(a) ?? [];
-        if (parents.length) {
-          for (const p of parents) addSibling(b, p);
-        }
-        break;
-      }
-      case "cousin": {
-        const parentsB = parentsOf.get(b) ?? [];
-        for (const p of parentsB) {
-          for (const sib of siblingsOf.get(p) ?? []) addParent(sib, a);
-        }
-        break;
-      }
+      case "niece":
+      case "cousin":
       case "grandfather":
       case "grandmother":
-        addParent(a, `__hint_grand_${a}_${b}`);
+      case "grandson":
+      case "granddaughter":
+      case "son-in-law":
+      case "daughter-in-law":
+        delayed.push(rel);
         break;
       default:
         break;
     }
   }
 
-  // Treat grandfather/grandmother as parent-of-parent when a middle generation exists;
-  // otherwise keep a synthetic two-step via an implicit link using extra parent edges.
-  for (const rel of relationships) {
+  for (const rel of delayed) {
     const { personA: a, personB: b, type } = rel;
-    if (type === "grandfather" || type === "grandmother") {
-      const mids = parentsOf.get(b) ?? [];
+    if (type === "uncle" || type === "aunt") {
+      const parents = (parentsOf.get(b) ?? []).filter((id) => peopleMap.has(id));
+      for (const p of parents) addSibling(a, p);
+    } else if (type === "nephew" || type === "niece") {
+      const parents = (parentsOf.get(a) ?? []).filter((id) => peopleMap.has(id));
+      for (const p of parents) addSibling(b, p);
+    } else if (type === "cousin") {
+      const parentsB = parentsOf.get(b) ?? [];
+      for (const p of parentsB) {
+        for (const sib of siblingsOf.get(p) ?? []) addParent(sib, a);
+      }
+    } else if (type === "grandfather" || type === "grandmother") {
+      const mids = (parentsOf.get(b) ?? []).filter((id) => peopleMap.has(id));
       if (mids.length) {
         for (const mid of mids) addParent(a, mid);
-      } else {
-        addParent(a, b);
       }
-    }
-    if (type === "grandson" || type === "granddaughter") {
-      const kids = childrenOf.get(b) ?? [];
+    } else if (type === "grandson" || type === "granddaughter") {
+      const kids = (childrenOf.get(b) ?? []).filter((id) => peopleMap.has(id));
       if (kids.length) {
         for (const kid of kids) addParent(b, kid);
-      } else {
-        addParent(b, a);
+      }
+    }
+  }
+
+  const pickChildForInLaw = (parentId: string, inLawId: string, marryGender: Person["gender"] | null) => {
+    const kids = (childrenOf.get(parentId) ?? []).filter((id) => peopleMap.has(id) && id !== inLawId);
+    const ranked = [
+      ...kids.filter((id) => (marryGender ? peopleMap.get(id)?.gender === marryGender : true) && !(spousesOf.get(id) ?? []).length),
+      ...kids.filter((id) => (marryGender ? peopleMap.get(id)?.gender === marryGender : true)),
+      ...kids.filter((id) => !(spousesOf.get(id) ?? []).length),
+      ...kids,
+    ];
+    return ranked[0];
+  };
+
+  for (const rel of relationships) {
+    const { personA: a, personB: b, type } = rel;
+    if (type === "son-in-law" || type === "daughter-in-law") {
+      const marry = type === "son-in-law" ? "female" : "male";
+      const child = pickChildForInLaw(b, a, marry);
+      if (child) addSpouse(a, child);
+      else {
+        for (const sp of spousesOf.get(a) ?? []) addParent(b, sp);
       }
     }
   }
 
   for (const [child, parents] of parentsOf) {
-    if (parents.length >= 2) {
-      for (let i = 0; i < parents.length; i++) {
-        for (let j = i + 1; j < parents.length; j++) addSpouse(parents[i], parents[j]);
-      }
+    const real = parents.filter((id) => peopleMap.has(id));
+    if (real.length === 2 && !(siblingsOf.get(real[0]) ?? []).includes(real[1])) {
+      addSpouse(real[0], real[1]);
     }
     void child;
   }
 
   for (const [childId, parents] of [...parentsOf.entries()]) {
+    if (!peopleMap.has(childId)) continue;
     for (const parentId of parents) {
-      for (const spouseId of spousesOf.get(parentId) ?? []) {
-        if (spouseId === childId) continue;
+      if (!peopleMap.has(parentId)) continue;
+      for (const spouseId of [...(spousesOf.get(parentId) ?? [])]) {
+        if (spouseId === childId || !peopleMap.has(spouseId)) continue;
+        if ((siblingsOf.get(parentId) ?? []).includes(spouseId)) continue;
+        let inLaw = false;
+        for (const sib of siblingsOf.get(parentId) ?? []) {
+          if ((spousesOf.get(sib) ?? []).includes(spouseId)) inLaw = true;
+        }
+        if (inLaw) continue;
         addParent(spouseId, childId);
       }
     }
@@ -149,6 +209,7 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
         if (sib === id) continue;
         for (const parentId of myParents) {
           if (parentId === sib) continue;
+          if ((spousesOf.get(sib) ?? []).includes(parentId)) continue;
           const before = (parentsOf.get(sib) ?? []).length;
           addParent(parentId, sib);
           if ((parentsOf.get(sib) ?? []).length > before) changed = true;
@@ -165,7 +226,39 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
     void parent;
   }
 
-  return { people: peopleMap, parentsOf, childrenOf, spousesOf, siblingsOf };
+  for (const [id, sibs] of [...siblingsOf.entries()]) {
+    for (const sib of sibs) dropLink(spousesOf, id, sib);
+  }
+
+  for (const [childId, parents] of [...parentsOf.entries()]) {
+    for (const parentId of [...parents]) {
+      const others = (parentsOf.get(childId) ?? []).filter((p) => p !== parentId);
+      const siblingOfParent = others.some((o) => (siblingsOf.get(parentId) ?? []).includes(o));
+      if (siblingOfParent && !hasParentLink(relationships, parentId, childId)) {
+        parentsOf.set(
+          childId,
+          (parentsOf.get(childId) ?? []).filter((p) => p !== parentId)
+        );
+        childrenOf.set(
+          parentId,
+          (childrenOf.get(parentId) ?? []).filter((c) => c !== childId)
+        );
+      }
+    }
+  }
+
+  for (const id of peopleMap.keys()) {
+    const spouses = spousesOf.get(id) ?? [];
+    for (const sp of spouses) {
+      for (const sib of siblingsOf.get(sp) ?? []) {
+        for (const cob of spousesOf.get(sib) ?? []) {
+          if (cob !== id) addCoBrother(id, cob);
+        }
+      }
+    }
+  }
+
+  return { people: peopleMap, parentsOf, childrenOf, spousesOf, siblingsOf, coBrothersOf };
 }
 
 export function getPerson(index: GraphIndex, id: string) {
@@ -427,21 +520,29 @@ export function roleOfPersonToSelected(index: GraphIndex, personId: string, sele
   if (siblings.includes(personId)) return word("Brother", "Sister", "Sibling");
   if (parents.includes(personId)) return word("Father", "Mother", "Parent");
   if (children.includes(personId)) return word("Son", "Daughter", "Child");
-  for (const sib of siblings) {
-    if ((index.parentsOf.get(sib) ?? []).includes(personId)) return word("Father", "Mother", "Parent");
-    if ((index.childrenOf.get(sib) ?? []).includes(personId)) return word("Son", "Daughter", "Child");
-  }
 
-  for (const p of parents) {
-    if ((index.parentsOf.get(p) ?? []).includes(personId)) {
-      return word("Grandfather", "Grandmother", "Grandparent");
+  for (const sib of siblings) {
+    if ((index.spousesOf.get(sib) ?? []).includes(personId)) {
+      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
+    }
+  }
+  for (const sp of spouses) {
+    if ((index.siblingsOf.get(sp) ?? []).includes(personId)) {
+      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
+    }
+    if ((index.parentsOf.get(sp) ?? []).includes(personId)) {
+      return word("Father-in-law", "Mother-in-law", "Parent-in-law");
     }
   }
   for (const c of children) {
-    if ((index.childrenOf.get(c) ?? []).includes(personId)) {
-      return word("Grandson", "Granddaughter", "Grandchild");
+    if ((index.spousesOf.get(c) ?? []).includes(personId)) {
+      return word("Son-in-law", "Daughter-in-law", "Child-in-law");
     }
   }
+  if ((index.coBrothersOf.get(selectedId) ?? []).includes(personId)) {
+    return word("Co-brother", "Co-sister", "Co-sibling");
+  }
+
   for (const p of parents) {
     const parentSiblings = index.siblingsOf.get(p) ?? [];
     if (parentSiblings.includes(personId)) return word("Uncle", "Aunt", "Parent's sibling");
@@ -453,22 +554,15 @@ export function roleOfPersonToSelected(index: GraphIndex, personId: string, sele
   for (const sib of siblings) {
     if ((index.childrenOf.get(sib) ?? []).includes(personId)) return word("Nephew", "Niece", "Nibling");
   }
-  for (const sp of spouses) {
-    if ((index.parentsOf.get(sp) ?? []).includes(personId)) {
-      return word("Father-in-law", "Mother-in-law", "Parent-in-law");
-    }
-    if ((index.siblingsOf.get(sp) ?? []).includes(personId)) {
-      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
-    }
-  }
-  for (const sib of siblings) {
-    if ((index.spousesOf.get(sib) ?? []).includes(personId)) {
-      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
+
+  for (const p of parents) {
+    if ((index.parentsOf.get(p) ?? []).includes(personId)) {
+      return word("Grandfather", "Grandmother", "Grandparent");
     }
   }
   for (const c of children) {
-    if ((index.spousesOf.get(c) ?? []).includes(personId)) {
-      return word("Son-in-law", "Daughter-in-law", "Child-in-law");
+    if ((index.childrenOf.get(c) ?? []).includes(personId)) {
+      return word("Grandson", "Granddaughter", "Grandchild");
     }
   }
 
@@ -729,6 +823,16 @@ export function inferMissingRelationships(people: Person[], relationships: Relat
     }
     for (const c of getCousins(index, p.id)) {
       add(p.id, "cousin", c.id);
+    }
+    for (const cob of index.coBrothersOf.get(p.id) ?? []) {
+      const other = index.people.get(cob);
+      if (!other) continue;
+      add(p.id, other.gender === "female" ? "co-sister" : "co-brother", cob);
+    }
+    for (const child of getChildren(index, p.id)) {
+      for (const inLaw of getSpouse(index, child.id)) {
+        add(inLaw.id, inLaw.gender === "female" ? "daughter-in-law" : "son-in-law", p.id);
+      }
     }
   }
   return extra;
