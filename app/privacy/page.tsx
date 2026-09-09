@@ -4,9 +4,8 @@ export default function PrivacyPage() {
       <h1 className="font-heading text-5xl text-maroon">Privacy</h1>
       <div className="ornament-line my-6" />
       <p className="leading-relaxed">
-        You may build a family tree without an account. Drafts stay in this browser until you choose to save. Saving
-        and printing require a login. Saved trees are stored with your account on this website. Photographs you add
-        are part of that saved tree.
+        You may build a family tree without an account. Saving and printing require a login. Saved trees are stored
+        with your account. Unsaved work lives in this session until you save.
       </p>
     </div>
   );

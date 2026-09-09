@@ -3,7 +3,6 @@ import { Cormorant_Garamond, Outfit, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
-import { FloatingGuide } from "@/components/floating-guide";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -39,7 +38,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteNav />
           <main className="flex-1">{children}</main>
           <SiteFooter />
-          <FloatingGuide />
         </Providers>
       </body>
     </html>

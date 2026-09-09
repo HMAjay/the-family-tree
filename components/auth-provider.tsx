@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { SessionUser } from "@/lib/auth-types";
-import type { FamilySnapshot } from "@/lib/types";
 import { useFamilyStore } from "@/store/family-store";
 
 type AuthState = {
@@ -23,19 +22,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then(async (data) => {
+      .then((data) => {
         setUser(data.user ?? null);
-        if (data.user) {
-          const fam = await fetch("/api/family");
-          if (fam.ok) {
-            const body = (await fam.json()) as { snapshot: FamilySnapshot | null };
-            if (body.snapshot?.people?.length) importSnapshot(body.snapshot);
-          }
-        }
       })
       .catch(() => setUser(null))
       .finally(() => setReady(true));
-  }, [importSnapshot]);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -47,7 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       if (!res.ok) return data.error as string;
       setUser(data.user);
-      if (data.snapshot?.people?.length) importSnapshot(data.snapshot);
+      const localCount = useFamilyStore.getState().people.length;
+      if (!localCount && data.snapshot?.people?.length) importSnapshot(data.snapshot);
       return null;
     },
     [importSnapshot]

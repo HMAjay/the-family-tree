@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,76 +19,78 @@ export function AddPersonDialog({
 }) {
   const people = useFamilyStore((s) => s.people);
   const addPerson = useFamilyStore((s) => s.addPerson);
-  const router = useRouter();
   const [name, setName] = useState("");
-  const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState<Gender>("female");
   const [dob, setDob] = useState("");
   const [dod, setDod] = useState("");
   const [location, setLocation] = useState("");
   const [occupation, setOccupation] = useState("");
   const [biography, setBiography] = useState("");
-  const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<string | undefined>();
   const [relativeId, setRelativeId] = useState(defaultRelativeId ?? "");
   const [relType, setRelType] = useState<RelationshipType>("daughter");
 
   const sorted = useMemo(() => [...people].sort((a, b) => a.name.localeCompare(b.name)), [people]);
 
-  const reset = () => {
+  function reset() {
     setName("");
-    setNickname("");
     setDob("");
     setDod("");
     setLocation("");
     setOccupation("");
     setBiography("");
-    setNotes("");
     setPhoto(undefined);
-  };
+    setRelativeId(defaultRelativeId ?? "");
+  }
+
+  function save() {
+    if (!name.trim()) return;
+    addPerson(
+      {
+        name: name.trim(),
+        gender,
+        dateOfBirth: dob || undefined,
+        dateOfDeath: dod || undefined,
+        location: location || undefined,
+        occupation: occupation || undefined,
+        biography: biography || undefined,
+        photo,
+      },
+      relativeId ? { relativeId, type: relType } : undefined
+    );
+    reset();
+    onOpenChange(false);
+  }
+
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-2xl text-maroon">Add a family member</DialogTitle>
-          <DialogDescription>
-            Names become roots. Fill what you know — the rest can wait.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="grid gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            const id = addPerson(
-              {
-                name: name.trim(),
-                nickname: nickname || undefined,
-                gender,
-                dateOfBirth: dob || undefined,
-                dateOfDeath: dod || undefined,
-                location: location || undefined,
-                occupation: occupation || undefined,
-                biography: biography || undefined,
-                notes: notes || undefined,
-                photo,
-              },
-              relativeId ? { relativeId, type: relType } : undefined
-            );
-            reset();
-            onOpenChange(false);
-            router.push(`/person/${id}`);
-          }}
-        >
-          <Field label="Full name">
-            <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Raghav Sharma" />
-          </Field>
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[#2c1810]/45"
+        aria-label="Close"
+        onClick={() => onOpenChange(false)}
+      />
+      <div
+        role="dialog"
+        aria-labelledby="add-person-title"
+        className="gold-border relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-card p-5 shadow-2xl"
+      >
+        <h2 id="add-person-title" className="font-heading text-2xl text-maroon">
+          {people.length ? "Add a family member" : "Add the first ancestor"}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {people.length ? "Connect them to someone already on the tree." : "Begin with one name. The rest of the family can grow from here."}
+        </p>
+        <div className="mt-4 grid gap-3">
+          <label className="grid gap-1 text-sm">
+            <Label>Full name</Label>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+          </label>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nickname">
-              <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Thatha" />
-            </Field>
-            <Field label="Gender">
+            <label className="grid gap-1 text-sm">
+              <Label>Gender</Label>
               <select
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
                 value={gender}
@@ -100,17 +100,18 @@ export function AddPersonDialog({
                 <option value="male">Male</option>
                 <option value="other">Other</option>
               </select>
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Date of birth">
+            </label>
+            <label className="grid gap-1 text-sm">
+              <Label>Date of birth</Label>
               <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
-            </Field>
-            <Field label="Date of death (optional)">
-              <Input type="date" value={dod} onChange={(e) => setDod(e.target.value)} />
-            </Field>
+            </label>
           </div>
-          <Field label="Photograph">
+          <label className="grid gap-1 text-sm">
+            <Label>Date of death (optional)</Label>
+            <Input type="date" value={dod} onChange={(e) => setDod(e.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <Label>Photograph (optional)</Label>
             <Input
               type="file"
               accept="image/*"
@@ -122,24 +123,25 @@ export function AddPersonDialog({
                 reader.readAsDataURL(file);
               }}
             />
-          </Field>
+          </label>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Location">
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Mysuru" />
-            </Field>
-            <Field label="Occupation">
-              <Input value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="Farmer" />
-            </Field>
+            <label className="grid gap-1 text-sm">
+              <Label>Location</Label>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <Label>Occupation</Label>
+              <Input value={occupation} onChange={(e) => setOccupation(e.target.value)} />
+            </label>
           </div>
-          <Field label="Biography">
-            <Textarea value={biography} onChange={(e) => setBiography(e.target.value)} rows={3} placeholder="A short remembrance..." />
-          </Field>
-          <Field label="Notes">
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-          </Field>
+          <label className="grid gap-1 text-sm">
+            <Label>A few words about them</Label>
+            <Textarea value={biography} onChange={(e) => setBiography(e.target.value)} rows={3} />
+          </label>
           {people.length > 0 && (
             <div className="grid grid-cols-2 gap-3 rounded-xl border border-gold/40 bg-secondary/40 p-3">
-              <Field label="Related to">
+              <label className="grid gap-1 text-sm">
+                <Label>Related to</Label>
                 <select
                   className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
                   value={relativeId}
@@ -152,8 +154,9 @@ export function AddPersonDialog({
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label="This person is their">
+              </label>
+              <label className="grid gap-1 text-sm">
+                <Label>This person is their</Label>
                 <select
                   className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
                   value={relType}
@@ -165,26 +168,19 @@ export function AddPersonDialog({
                     </option>
                   ))}
                 </select>
-              </Field>
-              <p className="col-span-2 text-xs text-muted-foreground">
-                Example: new person is the <em>son</em> of the selected relative. Additional kin are inferred automatically.
-              </p>
+              </label>
             </div>
           )}
-          <Button type="submit" className="mt-2 bg-maroon text-ivory hover:bg-maroon/90">
-            Place them on the tree
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1">
-      <Label>{label}</Label>
-      {children}
-    </label>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-maroon text-ivory" disabled={!name.trim()} onClick={save}>
+              Place them on the tree
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

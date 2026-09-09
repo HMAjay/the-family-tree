@@ -12,8 +12,6 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/", label: "Home" },
   { href: "/tree", label: "Family Tree" },
-  { href: "/generations", label: "Generations" },
-  { href: "/ask", label: "Ask Your Family" },
 ];
 
 export function SiteNav() {
@@ -34,7 +32,7 @@ export function SiteNav() {
               The Family Tree
             </span>
           </Link>
-          <div className="hidden flex-1 items-center justify-center gap-1 lg:flex">
+          <div className="hidden flex-1 items-center justify-center gap-1 md:flex">
             {links.map((l) => (
               <Link
                 key={l.href}
@@ -68,13 +66,12 @@ export function SiteNav() {
               className="rounded-full bg-maroon text-ivory hover:bg-maroon/90"
             >
               <Plus data-icon="inline-start" />
-              <span className="hidden sm:inline">Add Family Member</span>
-              <span className="sm:hidden">Add</span>
+              Add person
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="md:hidden"
               aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen((v) => !v)}
             >
@@ -84,47 +81,36 @@ export function SiteNav() {
         </nav>
       </header>
       {open && (
-        <div className="fixed inset-0 z-30 bg-[#2c1810]/40 pt-20 lg:hidden" onClick={() => setOpen(false)}>
-          <div
-            className="gold-border mx-3 rounded-2xl border bg-card p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-col gap-1">
-              {links.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "rounded-xl px-3 py-3",
-                    path === l.href ? "bg-maroon text-ivory" : "hover:bg-secondary"
-                  )}
-                >
-                  {l.label}
-                </Link>
-              ))}
-              <Link href="/related" onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 hover:bg-secondary">
-                How Are We Related?
+        <div className="fixed inset-0 z-30 bg-[#2c1810]/40 pt-20 md:hidden" onClick={() => setOpen(false)}>
+          <div className="gold-border mx-3 rounded-2xl border bg-card p-4" onClick={(e) => e.stopPropagation()}>
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "block rounded-xl px-3 py-3",
+                  path === l.href ? "bg-maroon text-ivory" : "hover:bg-secondary"
+                )}
+              >
+                {l.label}
               </Link>
-              <Link href="/settings" onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 hover:bg-secondary">
-                Family Settings
+            ))}
+            {user ? (
+              <button
+                className="w-full rounded-xl px-3 py-3 text-left hover:bg-secondary"
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+              >
+                Log out
+              </button>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3 hover:bg-secondary">
+                Log in
               </Link>
-              {user ? (
-                <button
-                  className="rounded-xl px-3 py-3 text-left hover:bg-secondary"
-                  onClick={() => {
-                    logout();
-                    setOpen(false);
-                  }}
-                >
-                  Log out
-                </button>
-              ) : (
-                <Link href="/login" onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 hover:bg-secondary">
-                  Log in
-                </Link>
-              )}
-            </div>
+            )}
           </div>
         </div>
       )}
