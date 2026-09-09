@@ -217,7 +217,9 @@ export function AddPersonDialog() {
 }
 
 function genderFromBond(type: RelationshipType): Gender {
-  return ["son", "father", "husband", "brother"].includes(type) ? "male" : "female";
+  return ["son", "father", "husband", "brother", "grandfather", "grandson", "uncle", "nephew"].includes(type)
+    ? "male"
+    : "female";
 }
 
 function parseYear(value: string): number | undefined {

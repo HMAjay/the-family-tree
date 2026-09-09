@@ -67,6 +67,31 @@ export function buildIndex(people: Person[], relationships: Relationship[]): Gra
       case "sister":
         addSibling(a, b);
         break;
+      case "uncle":
+      case "aunt": {
+        const parents = parentsOf.get(b) ?? [];
+        if (parents.length) {
+          for (const p of parents) addSibling(a, p);
+        } else {
+          addSibling(a, b);
+        }
+        break;
+      }
+      case "nephew":
+      case "niece": {
+        const parents = parentsOf.get(a) ?? [];
+        if (parents.length) {
+          for (const p of parents) addSibling(b, p);
+        }
+        break;
+      }
+      case "cousin": {
+        const parentsB = parentsOf.get(b) ?? [];
+        for (const p of parentsB) {
+          for (const sib of siblingsOf.get(p) ?? []) addParent(sib, a);
+        }
+        break;
+      }
       case "grandfather":
       case "grandmother":
         addParent(a, `__hint_grand_${a}_${b}`);
@@ -385,7 +410,7 @@ function summarizePath(index: GraphIndex, fromId: string, toId: string, steps: P
 }
 
 export function roleOfPersonToSelected(index: GraphIndex, personId: string, selectedId: string | null): string {
-  if (!selectedId) return "Family member";
+  if (!selectedId) return "";
   if (personId === selectedId) return "Selected";
   const person = index.people.get(personId);
   if (!person) return "Relative";

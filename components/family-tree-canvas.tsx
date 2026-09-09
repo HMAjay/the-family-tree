@@ -18,7 +18,7 @@ import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
 import { NodeContextMenu } from "@/components/node-context-menu";
-import { bondLabel, buildIndex, relationToSelected } from "@/lib/engine";
+import { buildIndex, relationToSelected } from "@/lib/engine";
 import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
 import { HoverCard } from "@/components/hover-card";
@@ -102,6 +102,12 @@ export function FamilyTreeCanvas() {
     const seen = new Set<string>();
     const pos = new Map(nodes.map((n) => [n.id, n.position]));
     const pairKey = (a: string, b: string) => [a, b].sort().join("::");
+    const touchesSelected = (a: string, b: string) => Boolean(selectedId && (a === selectedId || b === selectedId));
+    const labelTowardSelected = (a: string, b: string) => {
+      if (!selectedId || !touchesSelected(a, b)) return "";
+      const other = a === selectedId ? b : a;
+      return relationToSelected(index, selectedId, other);
+    };
 
     for (const p of people) {
       for (const childId of index.childrenOf.get(p.id) ?? []) {
@@ -110,6 +116,7 @@ export function FamilyTreeCanvas() {
         const key = `pc-${p.id}-${childId}`;
         if (seen.has(key)) continue;
         seen.add(key);
+        const active = touchesSelected(p.id, childId);
         list.push({
           id: key,
           source: p.id,
@@ -117,7 +124,7 @@ export function FamilyTreeCanvas() {
           sourceHandle: "child",
           targetHandle: "parent",
           type: "bond",
-          data: { kind: "parent-child", label: bondLabel(p, child, "parent-child") },
+          data: { kind: "parent-child", label: labelTowardSelected(p.id, childId), showLabel: active, active },
         });
       }
 
@@ -128,6 +135,7 @@ export function FamilyTreeCanvas() {
         const spouse = index.people.get(spId);
         if (!spouse) continue;
         const leftIsP = (pos.get(p.id)?.x ?? 0) <= (pos.get(spId)?.x ?? 0);
+        const active = touchesSelected(p.id, spId);
         list.push({
           id: `sp-${key}`,
           source: leftIsP ? p.id : spId,
@@ -135,7 +143,7 @@ export function FamilyTreeCanvas() {
           sourceHandle: "right",
           targetHandle: "left",
           type: "bond",
-          data: { kind: "spouse", label: bondLabel(p, spouse, "spouse") },
+          data: { kind: "spouse", label: labelTowardSelected(p.id, spId), showLabel: active, active },
         });
       }
 
@@ -150,6 +158,7 @@ export function FamilyTreeCanvas() {
         const sib = index.people.get(sibId);
         if (!sib) continue;
         const leftIsP = (pos.get(p.id)?.x ?? 0) <= (pos.get(sibId)?.x ?? 0);
+        const active = touchesSelected(p.id, sibId);
         list.push({
           id: `sib-${key}`,
           source: leftIsP ? p.id : sibId,
@@ -157,12 +166,12 @@ export function FamilyTreeCanvas() {
           sourceHandle: "right",
           targetHandle: "left",
           type: "bond",
-          data: { kind: "sibling", label: bondLabel(p, sib, "sibling") },
+          data: { kind: "sibling", label: labelTowardSelected(p.id, sibId), showLabel: active, active },
         });
       }
     }
     return list;
-  }, [people, index, nodes]);
+  }, [people, index, nodes, selectedId]);
 
   const displayNodes = useMemo(
     () =>

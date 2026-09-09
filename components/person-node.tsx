@@ -39,9 +39,11 @@ function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
           ) : null}
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
-          <p className="font-heading text-lg leading-tight text-maroon">{person.name}</p>
-          {lifespan(person) ? <p className="text-xs text-muted-foreground">{lifespan(person)}</p> : null}
-          <p className="mt-auto text-[11px] tracking-wide text-gold uppercase">{relationLabel}</p>
+          <p className="font-heading text-xl leading-tight text-maroon">{person.name}</p>
+          {lifespan(person) ? <p className="text-sm text-muted-foreground">{lifespan(person)}</p> : null}
+          {relationLabel ? (
+            <p className="mt-auto text-base font-extrabold tracking-wide text-maroon uppercase">{relationLabel}</p>
+          ) : null}
         </div>
       </div>
     </div>
