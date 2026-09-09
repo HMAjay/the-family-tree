@@ -43,6 +43,7 @@ interface FamilyState extends FamilySnapshot {
   future: TreeSnapshot[];
   setHydrated: () => void;
   setSelected: (id: string | null) => void;
+  setFamilyName: (name: string) => void;
   setAddOpen: (open: boolean) => void;
   openAddRelated: (relativeId: string, relType?: RelationshipType) => void;
   editingId: string | null;
@@ -85,6 +86,7 @@ export const useFamilyStore = create<FamilyState>()(
         future: [],
         setHydrated: () => set({ hydrated: true }),
         setSelected: (id) => set({ selectedId: id }),
+        setFamilyName: (name) => set({ familyName: name }),
         setAddOpen: (open) =>
           set(open ? { addOpen: true, addForId: null, addRelType: null } : { addOpen: false, addForId: null, addRelType: null }),
         openAddRelated: (relativeId, relType) =>

@@ -18,6 +18,7 @@ import { LayoutGrid, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { NodeContextMenu } from "@/components/node-context-menu";
 import { buildIndex, relationToSelected } from "@/lib/engine";
 import { layoutTree, treeMetrics } from "@/lib/layout";
@@ -55,6 +56,8 @@ export function FamilyTreeCanvas() {
   const selectedId = useFamilyStore((s) => s.selectedId);
   const setSelected = useFamilyStore((s) => s.setSelected);
   const startEmpty = useFamilyStore((s) => s.startEmpty);
+  const familyName = useFamilyStore((s) => s.familyName);
+  const setFamilyName = useFamilyStore((s) => s.setFamilyName);
   const setAddOpen = useFamilyStore((s) => s.setAddOpen);
   const setNodePosition = useFamilyStore((s) => s.setNodePosition);
   const setPositions = useFamilyStore((s) => s.setPositions);
@@ -306,19 +309,16 @@ export function FamilyTreeCanvas() {
     );
   }
 
-  const selectedName = selectedId ? index.people.get(selectedId)?.name : null;
-
   return (
     <div className="flex h-full min-h-[28rem] flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
-        <div>
-          <p className="font-heading text-2xl text-maroon">Your family</p>
-          <p className="text-xs text-muted-foreground">
-            {selectedName
-              ? `Selected ${selectedName}. Bonds to parents, siblings, and closer kin are labeled. Double-click for their profile.`
-              : "Click a person to see father, mother, sibling, and other bonds. Double-click for a profile."}
-          </p>
-        </div>
+        <Input
+          value={familyName}
+          onChange={(e) => setFamilyName(e.target.value)}
+          placeholder="Family name"
+          aria-label="Family name"
+          className="font-heading h-11 max-w-md border-transparent bg-transparent px-1 text-2xl font-bold text-maroon shadow-none focus-visible:border-gold/50 focus-visible:ring-gold/30 md:text-2xl"
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" className="rounded-full bg-maroon text-ivory" onClick={() => setAddOpen(true)}>
             <Plus data-icon="inline-start" />
