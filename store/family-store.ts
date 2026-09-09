@@ -13,13 +13,17 @@ interface FamilyState extends FamilySnapshot {
   hydrated: boolean;
   selectedId: string | null;
   addOpen: boolean;
+  bondEdit: { fromId: string; toId: string } | null;
   positions: Record<string, NodePosition>;
   setHydrated: () => void;
   setSelected: (id: string | null) => void;
   setAddOpen: (open: boolean) => void;
+  setBondEdit: (pair: { fromId: string; toId: string } | null) => void;
   setNodePosition: (id: string, position: NodePosition) => void;
   setPositions: (positions: Record<string, NodePosition>) => void;
   addPerson: (person: Omit<Person, "id"> & { id?: string }, link?: { relativeId: string; type: RelationshipType }) => string;
+  setBond: (personA: string, personB: string, type: RelationshipType) => void;
+  removeBond: (personA: string, personB: string) => void;
   startEmpty: () => void;
 }
 
@@ -30,10 +34,12 @@ export const useFamilyStore = create<FamilyState>()(
       hydrated: false,
       selectedId: null,
       addOpen: false,
+      bondEdit: null,
       positions: {},
       setHydrated: () => set({ hydrated: true }),
       setSelected: (id) => set({ selectedId: id }),
       setAddOpen: (open) => set({ addOpen: open }),
+      setBondEdit: (pair) => set({ bondEdit: pair }),
       setNodePosition: (id, position) => set({ positions: { ...get().positions, [id]: position } }),
       setPositions: (positions) => set({ positions }),
       addPerson: (person, link) => {
@@ -60,11 +66,29 @@ export const useFamilyStore = create<FamilyState>()(
         });
         return id;
       },
+      setBond: (personA, personB, type) => {
+        if (personA === personB) return;
+        const relationships = get().relationships.filter(
+          (r) =>
+            !((r.personA === personA && r.personB === personB) || (r.personA === personB && r.personB === personA))
+        );
+        relationships.push({ id: nanoid(10), personA, personB, type });
+        set({ relationships });
+      },
+      removeBond: (personA, personB) => {
+        set({
+          relationships: get().relationships.filter(
+            (r) =>
+              !((r.personA === personA && r.personB === personB) || (r.personA === personB && r.personB === personA))
+          ),
+        });
+      },
       startEmpty: () =>
         set({
           ...emptyFamily("Our Family"),
           selectedId: null,
           positions: {},
+          bondEdit: null,
         }),
     }),
     {

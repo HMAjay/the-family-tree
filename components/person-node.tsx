@@ -10,19 +10,21 @@ export type PersonNodeData = {
   person: Person;
   relationLabel: string;
   highlighted: boolean;
+  dropTarget?: boolean;
 };
 
 export type PersonFlowNode = Node<PersonNodeData, "person">;
 
 function PersonNodeInner({ data, selected }: NodeProps<PersonFlowNode>) {
   if (!data?.person) return null;
-  const { person, relationLabel, highlighted } = data;
+  const { person, relationLabel, highlighted, dropTarget } = data;
   return (
     <div
       className={cn(
         "gold-border w-[200px] cursor-grab overflow-hidden rounded-2xl border bg-card text-left active:cursor-grabbing",
         (selected || highlighted) &&
-          "outline outline-[3px] outline-offset-2 outline-maroon shadow-[0_0_0_6px_rgba(196,163,90,0.45)]"
+          "outline outline-[3px] outline-offset-2 outline-maroon shadow-[0_0_0_6px_rgba(196,163,90,0.45)]",
+        dropTarget && "outline outline-[3px] outline-offset-4 outline-dashed outline-gold shadow-[0_0_0_8px_rgba(196,163,90,0.35)]"
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-gold !size-2 !border-none" />

@@ -18,13 +18,34 @@ import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
 import { bondLabel, buildIndex, relationToSelected } from "@/lib/engine";
-import { layoutTree } from "@/lib/layout";
+import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
 import { HoverCard } from "@/components/hover-card";
 import type { Person } from "@/lib/types";
 
 const nodeTypes = { person: PersonNode };
 const edgeTypes = { bond: BondEdge };
+const NODE_W = treeMetrics.NODE_W;
+const NODE_H = treeMetrics.NODE_H;
+
+function findDropTarget(dragged: Node, others: Node[]): Node | null {
+  const d = { x: dragged.position.x, y: dragged.position.y, w: NODE_W, h: NODE_H };
+  const cx = d.x + d.w / 2;
+  const cy = d.y + d.h / 2;
+  let best: { node: Node; score: number } | null = null;
+  for (const n of others) {
+    if (n.id === dragged.id) continue;
+    const t = { x: n.position.x, y: n.position.y, w: NODE_W, h: NODE_H };
+    const overlapX = Math.max(0, Math.min(d.x + d.w, t.x + t.w) - Math.max(d.x, t.x));
+    const overlapY = Math.max(0, Math.min(d.y + d.h, t.y + t.h) - Math.max(d.y, t.y));
+    const area = overlapX * overlapY;
+    const inside = cx >= t.x && cx <= t.x + t.w && cy >= t.y && cy <= t.y + t.h;
+    if (area < NODE_W * NODE_H * 0.16 && !inside) continue;
+    const score = area + (inside ? 50_000 : 0);
+    if (!best || score > best.score) best = { node: n, score };
+  }
+  return best?.node ?? null;
+}
 
 export function FamilyTreeCanvas() {
   const people = useFamilyStore((s) => s.people);
@@ -35,11 +56,16 @@ export function FamilyTreeCanvas() {
   const setAddOpen = useFamilyStore((s) => s.setAddOpen);
   const setNodePosition = useFamilyStore((s) => s.setNodePosition);
   const setPositions = useFamilyStore((s) => s.setPositions);
+  const setBondEdit = useFamilyStore((s) => s.setBondEdit);
   const router = useRouter();
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [arrangeToken, setArrangeToken] = useState(0);
   const arrangeSeen = useRef(0);
+  const nodesRef = useRef<Node[]>([]);
+  const dragOrigin = useRef<{ id: string; position: { x: number; y: number } } | null>(null);
+  nodesRef.current = nodes;
 
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const layout = useMemo(() => layoutTree(index), [index]);
@@ -133,15 +159,48 @@ export function FamilyTreeCanvas() {
     return list;
   }, [people, index, nodes]);
 
+  const displayNodes = useMemo(
+    () =>
+      nodes.map((n) => ({
+        ...n,
+        data: {
+          ...(n.data as PersonFlowNode["data"]),
+          dropTarget: n.id === dropTargetId,
+        },
+      })),
+    [nodes, dropTargetId]
+  );
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, []);
 
+  const onNodeDragStart = useCallback((_: unknown, node: Node) => {
+    dragOrigin.current = { id: node.id, position: { ...node.position } };
+    setHover(null);
+    setDropTargetId(null);
+  }, []);
+
+  const onNodeDrag = useCallback((_: unknown, node: Node) => {
+    const over = findDropTarget(node, nodesRef.current);
+    setDropTargetId(over?.id ?? null);
+  }, []);
+
   const onNodeDragStop = useCallback(
     (_event: unknown, node: Node) => {
+      const over = findDropTarget(node, nodesRef.current);
+      const origin = dragOrigin.current;
+      dragOrigin.current = null;
+      setDropTargetId(null);
+      if (over && origin) {
+        setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: origin.position } : n)));
+        setNodePosition(node.id, origin.position);
+        setBondEdit({ fromId: node.id, toId: over.id });
+        return;
+      }
       setNodePosition(node.id, node.position);
     },
-    [setNodePosition]
+    [setNodePosition, setBondEdit]
   );
 
   const arrange = useCallback(() => {
@@ -181,8 +240,8 @@ export function FamilyTreeCanvas() {
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
             {selectedName
-              ? `Selected ${selectedName}. Drag anyone to move them. Double-click a person to open their profile.`
-              : "Click to select. Drag to move. Arrange restores grandparents above, siblings together, children below."}
+              ? `Selected ${selectedName}. Drag to move. Drop onto another person to edit the relation.`
+              : "Click to select. Drag to move. Drop onto someone to edit their relation. Arrange restores the hierarchy."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +261,7 @@ export function FamilyTreeCanvas() {
       <div className="relative min-h-0 flex-1" style={{ minHeight: 480 }}>
         <ReactFlow
           className="h-full w-full"
-          nodes={nodes}
+          nodes={displayNodes}
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -222,7 +281,8 @@ export function FamilyTreeCanvas() {
           nodeDragThreshold={4}
           onNodeClick={(_, node) => setSelected(node.id)}
           onNodeDoubleClick={(_, node) => router.push(`/person/${node.id}`)}
-          onNodeDragStart={() => setHover(null)}
+          onNodeDragStart={onNodeDragStart}
+          onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           onNodeMouseEnter={(e, node) => {
             const person = people.find((p) => p.id === node.id);
