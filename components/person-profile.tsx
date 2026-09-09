@@ -17,6 +17,7 @@ export function PersonProfile({ id }: { id: string }) {
   const people = useFamilyStore((s) => s.people);
   const relationships = useFamilyStore((s) => s.relationships);
   const setSelected = useFamilyStore((s) => s.setSelected);
+  const openEdit = useFamilyStore((s) => s.openEdit);
   const person = people.find((p) => p.id === id);
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
 
@@ -53,13 +54,22 @@ export function PersonProfile({ id }: { id: string }) {
             <p className="mt-4 text-sm text-muted-foreground">
               {[person.occupation, person.location].filter(Boolean).join(" · ")}
             </p>
-            <Link
-              href="/tree"
-              onClick={() => setSelected(person.id)}
-              className="mt-6 inline-flex rounded-full bg-maroon px-4 py-2 text-sm text-ivory"
-            >
-              Back to the tree
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => openEdit(person.id)}
+                className="inline-flex rounded-full border border-gold/60 px-4 py-2 text-sm text-maroon"
+              >
+                Edit details
+              </button>
+              <Link
+                href="/tree"
+                onClick={() => setSelected(person.id)}
+                className="inline-flex rounded-full bg-maroon px-4 py-2 text-sm text-ivory"
+              >
+                Back to the tree
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AddPersonDialog } from "@/components/add-person-dialog";
 import { EditBondDialog } from "@/components/edit-bond-dialog";
+import { EditPersonDialog } from "@/components/edit-person-dialog";
 import { useFamilyStore } from "@/store/family-store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <>
       {children}
       <AddPersonDialog />
+      <EditPersonDialog />
       <EditBondDialog />
     </>
   );

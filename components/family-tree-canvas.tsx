@@ -11,12 +11,12 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LayoutGrid, Plus } from "lucide-react";
 import { PersonNode, type PersonFlowNode } from "@/components/person-node";
 import { BondEdge, type BondFlowEdge } from "@/components/bond-edge";
 import { Button } from "@/components/ui/button";
+import { NodeContextMenu } from "@/components/node-context-menu";
 import { bondLabel, buildIndex, relationToSelected } from "@/lib/engine";
 import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
@@ -57,8 +57,10 @@ export function FamilyTreeCanvas() {
   const setNodePosition = useFamilyStore((s) => s.setNodePosition);
   const setPositions = useFamilyStore((s) => s.setPositions);
   const setBondEdit = useFamilyStore((s) => s.setBondEdit);
-  const router = useRouter();
+  const openAddRelated = useFamilyStore((s) => s.openAddRelated);
+  const openEdit = useFamilyStore((s) => s.openEdit);
   const [hover, setHover] = useState<{ person: Person; x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [arrangeToken, setArrangeToken] = useState(0);
@@ -240,8 +242,8 @@ export function FamilyTreeCanvas() {
           <p className="font-heading text-2xl text-maroon">Your family</p>
           <p className="text-xs text-muted-foreground">
             {selectedName
-              ? `Selected ${selectedName}. Drag to move. Drop onto another person to edit the relation.`
-              : "Click to select. Drag to move. Drop onto someone to edit their relation. Arrange restores the hierarchy."}
+              ? `Selected ${selectedName}. Double-click to edit. Right-click to add a relative.`
+              : "Double-click to edit details. Right-click to add someone related. Drop onto a person to change a bond."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -279,8 +281,21 @@ export function FamilyTreeCanvas() {
           elementsSelectable
           selectNodesOnDrag={false}
           nodeDragThreshold={4}
-          onNodeClick={(_, node) => setSelected(node.id)}
-          onNodeDoubleClick={(_, node) => router.push(`/person/${node.id}`)}
+          onNodeClick={(_, node) => {
+            setMenu(null);
+            setSelected(node.id);
+          }}
+          onNodeDoubleClick={(_, node) => {
+            setMenu(null);
+            setHover(null);
+            openEdit(node.id);
+          }}
+          onNodeContextMenu={(event, node) => {
+            event.preventDefault();
+            setHover(null);
+            setSelected(node.id);
+            setMenu({ id: node.id, x: event.clientX, y: event.clientY });
+          }}
           onNodeDragStart={onNodeDragStart}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
@@ -296,13 +311,31 @@ export function FamilyTreeCanvas() {
           onPaneClick={() => {
             setHover(null);
             setSelected(null);
+            setMenu(null);
           }}
+          onPaneContextMenu={(event) => event.preventDefault()}
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#c4a35a" gap={32} size={1} />
           <Controls showInteractive={false} />
           <CenterButton arrangeToken={arrangeToken} />
         </ReactFlow>
+        {menu && (
+          <NodeContextMenu
+            name={index.people.get(menu.id)?.name ?? "this person"}
+            x={menu.x}
+            y={menu.y}
+            onEdit={() => {
+              openEdit(menu.id);
+              setMenu(null);
+            }}
+            onAdd={(type) => {
+              openAddRelated(menu.id, type);
+              setMenu(null);
+            }}
+            onClose={() => setMenu(null)}
+          />
+        )}
         {hover && (
           <HoverCard
             person={hover.person}

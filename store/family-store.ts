@@ -13,11 +13,17 @@ interface FamilyState extends FamilySnapshot {
   hydrated: boolean;
   selectedId: string | null;
   addOpen: boolean;
+  addForId: string | null;
+  addRelType: RelationshipType | null;
   bondEdit: { fromId: string; toId: string } | null;
   positions: Record<string, NodePosition>;
   setHydrated: () => void;
   setSelected: (id: string | null) => void;
   setAddOpen: (open: boolean) => void;
+  openAddRelated: (relativeId: string, relType?: RelationshipType) => void;
+  editingId: string | null;
+  openEdit: (id: string | null) => void;
+  updatePerson: (id: string, patch: Partial<Omit<Person, "id">>) => void;
   setBondEdit: (pair: { fromId: string; toId: string } | null) => void;
   setNodePosition: (id: string, position: NodePosition) => void;
   setPositions: (positions: Record<string, NodePosition>) => void;
@@ -34,11 +40,28 @@ export const useFamilyStore = create<FamilyState>()(
       hydrated: false,
       selectedId: null,
       addOpen: false,
+      addForId: null,
+      addRelType: null,
+      editingId: null,
       bondEdit: null,
       positions: {},
       setHydrated: () => set({ hydrated: true }),
       setSelected: (id) => set({ selectedId: id }),
-      setAddOpen: (open) => set({ addOpen: open }),
+      setAddOpen: (open) =>
+        set(open ? { addOpen: true, addForId: null, addRelType: null } : { addOpen: false, addForId: null, addRelType: null }),
+      openAddRelated: (relativeId, relType) =>
+        set({
+          addOpen: true,
+          selectedId: relativeId,
+          addForId: relativeId,
+          addRelType: relType ?? "son",
+        }),
+      openEdit: (id) => set({ editingId: id, selectedId: id ?? get().selectedId }),
+      updatePerson: (id, patch) => {
+        set({
+          people: get().people.map((p) => (p.id === id ? { ...p, ...patch, id } : p)),
+        });
+      },
       setBondEdit: (pair) => set({ bondEdit: pair }),
       setNodePosition: (id, position) => set({ positions: { ...get().positions, [id]: position } }),
       setPositions: (positions) => set({ positions }),
@@ -89,6 +112,10 @@ export const useFamilyStore = create<FamilyState>()(
           selectedId: null,
           positions: {},
           bondEdit: null,
+          addOpen: false,
+          addForId: null,
+          addRelType: null,
+          editingId: null,
         }),
     }),
     {

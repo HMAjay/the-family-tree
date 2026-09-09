@@ -15,6 +15,8 @@ export function AddPersonDialog() {
   const addPerson = useFamilyStore((s) => s.addPerson);
   const open = useFamilyStore((s) => s.addOpen);
   const onOpenChange = useFamilyStore((s) => s.setAddOpen);
+  const addForId = useFamilyStore((s) => s.addForId);
+  const addRelType = useFamilyStore((s) => s.addRelType);
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>("female");
   const [year, setYear] = useState("");
@@ -26,8 +28,15 @@ export function AddPersonDialog() {
   const [relType, setRelType] = useState<RelationshipType>("son");
 
   useEffect(() => {
-    if (open) setRelativeId(selectedId ?? people[0]?.id ?? "");
-  }, [open, selectedId, people]);
+    if (!open) return;
+    setRelativeId(addForId ?? selectedId ?? people[0]?.id ?? "");
+    if (addRelType) {
+      setRelType(addRelType);
+      setGender(genderFromBond(addRelType));
+    } else {
+      setRelType("son");
+    }
+  }, [open, selectedId, people, addForId, addRelType]);
 
   const sorted = useMemo(() => [...people].sort((a, b) => a.name.localeCompare(b.name)), [people]);
 
@@ -77,7 +86,7 @@ export function AddPersonDialog() {
             {people.length ? "Add someone" : "The first member"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {people.length ? "A name, a bond, and they take their place on the tree." : "Every tree begins with one person."}
+            {people.length ? (addForId ? `Someone related to ${people.find((p) => p.id === addForId)?.name ?? "this person"}` : "A name, a bond, and they take their place on the tree.") : "Every tree begins with one person."}
           </p>
         </div>
         <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-6 py-5">
@@ -187,6 +196,10 @@ export function AddPersonDialog() {
     </div>,
     document.body
   );
+}
+
+function genderFromBond(type: RelationshipType): Gender {
+  return ["son", "father", "husband", "brother"].includes(type) ? "male" : "female";
 }
 
 function parseYear(value: string): number | undefined {

@@ -38,7 +38,7 @@ export function HoverCard({
         )}
         {person.biography && <p className="mt-2 line-clamp-2 text-sm">{person.biography}</p>}
         <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          Click to see how everyone is related to {person.name.split(" ")[0]}. Double-click to open their profile.
+          Click to select. Double-click to edit details. Right-click to add someone related.
         </p>
       </div>
     </div>
