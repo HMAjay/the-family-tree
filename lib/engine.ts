@@ -312,19 +312,31 @@ export function findRelationship(index: GraphIndex, fromId: string, toId: string
 function summarizePath(index: GraphIndex, fromId: string, toId: string, steps: PathStep[]) {
   const a = index.people.get(fromId)!;
   const b = index.people.get(toId)!;
-  const chain = [a.name, ...steps.map((s) => `${s.label} → ${index.people.get(s.toId)?.name}`)].join(" ");
-  const short = steps.map((s) => s.label.toLowerCase()).join(" of ");
+  const labels = steps.map((s) => s.label);
+  const via = (i: number) => index.people.get(steps[i].toId)?.name;
   if (steps.length === 1) {
     return `${a.name} is the ${steps[0].label.toLowerCase()} of ${b.name}.`;
   }
-  if (steps.length === 2 && steps[0].label === "Father" && steps[1].label === "Father") {
-    return `${b.name}'s grandfather is ${a.name}, who is the father of ${b.name}'s father, ${index.people.get(steps[0].toId)?.name}.`;
+  if (labels[0] === "Father" && labels[1] === "Father") {
+    return `${b.name}'s grandfather is ${a.name}, who is the father of ${b.name}'s father, ${via(0)}.`;
   }
-  if (steps.length === 2 && steps[0].label === "Mother" && (steps[1].label === "Father" || steps[1].label === "Mother")) {
-    return `${a.name} is a grandparent of ${b.name} through ${index.people.get(steps[0].toId)?.name}.`;
+  if ((labels[0] === "Father" || labels[0] === "Mother") && (labels[1] === "Father" || labels[1] === "Mother")) {
+    const word = a.gender === "female" ? "grandmother" : "grandfather";
+    return `${a.name} is the ${word} of ${b.name}, through ${via(0)}.`;
   }
-  return `${a.name} is related to ${b.name} as: ${chain}.`;
-  void short;
+  if ((labels[0] === "Brother" || labels[0] === "Sister") && (labels[1] === "Son" || labels[1] === "Daughter")) {
+    const word = a.gender === "female" ? "aunt" : "uncle";
+    return `${a.name} is the ${word} of ${b.name}, via ${via(0)}.`;
+  }
+  if ((labels[0] === "Son" || labels[0] === "Daughter") && (labels[1] === "Brother" || labels[1] === "Sister")) {
+    const word = a.gender === "female" ? "niece" : "nephew";
+    return `${a.name} is the ${word} of ${b.name}.`;
+  }
+  if (labels.length === 3 && (labels[0] === "Father" || labels[0] === "Mother") && (labels[1] === "Brother" || labels[1] === "Sister")) {
+    return `${a.name} is a grandparent-side relative of ${b.name} through ${via(0)}.`;
+  }
+  const pretty = [a.name, ...steps.map((s) => `${s.label} → ${index.people.get(s.toId)?.name}`)].join(" → ");
+  return `${a.name} is related to ${b.name}: ${pretty}.`;
 }
 
 export function relationToSelected(index: GraphIndex, selectedId: string | null, personId: string) {
@@ -351,21 +363,53 @@ export function relationToSelected(index: GraphIndex, selectedId: string | null,
 
 export function generationMap(index: GraphIndex): Map<string, number> {
   const gen = new Map<string, number>();
-  const roots = [...index.people.keys()].filter((id) => (index.parentsOf.get(id) ?? []).length === 0);
+  for (const id of index.people.keys()) gen.set(id, 0);
 
-  const visit = (id: string, g: number) => {
-    const prev = gen.get(id);
-    if (prev !== undefined && prev <= g) return;
-    gen.set(id, g);
-    for (const c of index.childrenOf.get(id) ?? []) visit(c, g + 1);
+  const parentDepth = (id: string, seen: Set<string>): number => {
+    const cached = gen.get(id);
+    if (cached && cached > 0 && seen.size === 0) return cached;
+    const parents = index.parentsOf.get(id) ?? [];
+    if (!parents.length) return 0;
+    let max = 0;
+    for (const p of parents) {
+      if (seen.has(p)) continue;
+      seen.add(p);
+      max = Math.max(max, parentDepth(p, seen) + 1);
+      seen.delete(p);
+    }
+    return max;
   };
-  for (const r of roots) visit(r, 0);
 
   for (const id of index.people.keys()) {
-    if (gen.has(id)) continue;
-    const spouses = index.spousesOf.get(id) ?? [];
-    const spGen = spouses.map((s) => gen.get(s)).find((n) => n !== undefined);
-    gen.set(id, spGen ?? 0);
+    gen.set(id, parentDepth(id, new Set()));
+  }
+
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const id of index.people.keys()) {
+      for (const s of index.spousesOf.get(id) ?? []) {
+        const a = gen.get(id) ?? 0;
+        const b = gen.get(s) ?? 0;
+        const m = Math.max(a, b);
+        if (a !== m) {
+          gen.set(id, m);
+          changed = true;
+        }
+        if (b !== m) {
+          gen.set(s, m);
+          changed = true;
+        }
+      }
+      const parents = index.parentsOf.get(id) ?? [];
+      if (parents.length) {
+        const childGen = Math.max(...parents.map((p) => (gen.get(p) ?? 0))) + 1;
+        if ((gen.get(id) ?? 0) < childGen) {
+          gen.set(id, childGen);
+          changed = true;
+        }
+      }
+    }
+    if (!changed) break;
   }
 
   let min = Infinity;
@@ -390,11 +434,13 @@ export function marriedIntoFamily(index: GraphIndex, familyName = "Sharma"): Per
     const spouses = getSpouse(index, p.id);
     if (!spouses.length) continue;
     const parents = getParents(index, p.id);
-    const inBlood = parents.length > 0;
+    const spouseHasParents = spouses.some((s) => getParents(index, s.id).length > 0);
+    if (!parents.length && !spouseHasParents) continue;
     const sharesName = p.name.toLowerCase().includes(familyName.toLowerCase());
-    if (!inBlood && spouses.some((s) => s.name.toLowerCase().includes(familyName.toLowerCase()))) {
+    const spouseShares = spouses.some((s) => s.name.toLowerCase().includes(familyName.toLowerCase()));
+    if (!parents.length && (spouseShares || spouseHasParents)) {
       out.push(p);
-    } else if (!inBlood && !sharesName && spouses.length) {
+    } else if (!parents.length && !sharesName && spouses.length) {
       out.push(p);
     }
   }
@@ -434,11 +480,15 @@ export function familyStats(snapshot: FamilySnapshot) {
     .flatMap((p) => [yearOf(p.dateOfBirth), yearOf(p.dateOfDeath)])
     .filter((n): n is number => Boolean(n));
   const span = years.length ? Math.max(...years) - Math.min(...years) : 0;
-  const roots = [...index.people.keys()].filter((id) => (index.parentsOf.get(id) ?? []).length === 0);
+  const parentSets = new Set(
+    snapshot.people
+      .map((p) => (index.parentsOf.get(p.id) ?? []).slice().sort().join("|"))
+      .filter(Boolean)
+  );
   return {
     generations: genCount,
     members: snapshot.people.length,
-    branches: Math.max(roots.length, 1),
+    branches: Math.max(parentSets.size, 1),
     cities: cities.size,
     yearsOfHistory: span,
     memories: snapshot.memories.length,
