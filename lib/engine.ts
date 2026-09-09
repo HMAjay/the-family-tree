@@ -339,26 +339,88 @@ function summarizePath(index: GraphIndex, fromId: string, toId: string, steps: P
   return `${a.name} is related to ${b.name}: ${pretty}.`;
 }
 
-export function relationToSelected(index: GraphIndex, selectedId: string | null, personId: string) {
+export function roleOfPersonToSelected(index: GraphIndex, personId: string, selectedId: string | null): string {
   if (!selectedId) return "Family member";
-  if (selectedId === personId) return "You are viewing";
-  const path = findRelationship(index, personId, selectedId);
-  if (!path.found || path.steps.length === 0) return "Relative";
-  if (path.steps.length === 1) return path.steps[0].label;
-  if (path.steps.length === 2) {
-    const [x, y] = path.steps.map((s) => s.label);
-    if (x === "Father" && y === "Father") return "Grandfather";
-    if (x === "Mother" && y === "Father") return "Grandmother";
-    if (x === "Father" && y === "Mother") return "Grandfather";
-    if (x === "Mother" && y === "Mother") return "Grandmother";
-    if (x === "Son" && (y === "Son" || y === "Daughter")) return "Grandson";
-    if (x === "Daughter" && (y === "Son" || y === "Daughter")) return "Granddaughter";
-    if ((x === "Brother" || x === "Sister") && (y === "Father" || y === "Mother")) return x === "Brother" ? "Uncle" : "Aunt";
-    if ((x === "Son" || x === "Daughter") && (y === "Brother" || y === "Sister")) return x === "Son" ? "Nephew" : "Niece";
-    if ((x === "Son" || x === "Daughter") && (y === "Uncle" || y === "Aunt" || y === "Brother" || y === "Sister"))
-      return "Cousin";
+  if (personId === selectedId) return "Selected";
+  const person = index.people.get(personId);
+  if (!person) return "Relative";
+
+  const word = (male: string, female: string, other: string) =>
+    person.gender === "female" ? female : person.gender === "male" ? male : other;
+
+  const spouses = index.spousesOf.get(selectedId) ?? [];
+  const siblings = index.siblingsOf.get(selectedId) ?? [];
+  const parents = index.parentsOf.get(selectedId) ?? [];
+  const children = index.childrenOf.get(selectedId) ?? [];
+
+  if (spouses.includes(personId)) return word("Husband", "Wife", "Spouse");
+  if (siblings.includes(personId)) return word("Brother", "Sister", "Sibling");
+  if (parents.includes(personId)) return word("Father", "Mother", "Parent");
+  if (children.includes(personId)) return word("Son", "Daughter", "Child");
+
+  for (const p of parents) {
+    if ((index.parentsOf.get(p) ?? []).includes(personId)) {
+      return word("Grandfather", "Grandmother", "Grandparent");
+    }
   }
-  return path.steps.map((s) => s.label).join(" → ");
+  for (const c of children) {
+    if ((index.childrenOf.get(c) ?? []).includes(personId)) {
+      return word("Grandson", "Granddaughter", "Grandchild");
+    }
+  }
+  for (const p of parents) {
+    const parentSiblings = index.siblingsOf.get(p) ?? [];
+    if (parentSiblings.includes(personId)) return word("Uncle", "Aunt", "Parent's sibling");
+    for (const sib of parentSiblings) {
+      if ((index.spousesOf.get(sib) ?? []).includes(personId)) return word("Uncle", "Aunt", "Aunt or uncle");
+      if ((index.childrenOf.get(sib) ?? []).includes(personId)) return "Cousin";
+    }
+  }
+  for (const sib of siblings) {
+    if ((index.childrenOf.get(sib) ?? []).includes(personId)) return word("Nephew", "Niece", "Nibling");
+  }
+  for (const sp of spouses) {
+    if ((index.parentsOf.get(sp) ?? []).includes(personId)) {
+      return word("Father-in-law", "Mother-in-law", "Parent-in-law");
+    }
+    if ((index.siblingsOf.get(sp) ?? []).includes(personId)) {
+      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
+    }
+  }
+  for (const sib of siblings) {
+    if ((index.spousesOf.get(sib) ?? []).includes(personId)) {
+      return word("Brother-in-law", "Sister-in-law", "Sibling-in-law");
+    }
+  }
+  for (const c of children) {
+    if ((index.spousesOf.get(c) ?? []).includes(personId)) {
+      return word("Son-in-law", "Daughter-in-law", "Child-in-law");
+    }
+  }
+
+  const path = findRelationship(index, personId, selectedId);
+  if (!path.found) return "Relative";
+  if (path.steps.length === 1) return path.steps[0].label;
+  return "Relative";
+}
+
+export function relationToSelected(index: GraphIndex, selectedId: string | null, personId: string) {
+  return roleOfPersonToSelected(index, personId, selectedId);
+}
+
+export function bondLabel(a: Person, b: Person, kind: "spouse" | "sibling" | "parent-child") {
+  if (kind === "spouse") {
+    if ([a.gender, b.gender].includes("male") && [a.gender, b.gender].includes("female")) return "Husband & wife";
+    return "Spouses";
+  }
+  if (kind === "sibling") {
+    if (a.gender === "male" && b.gender === "male") return "Brothers";
+    if (a.gender === "female" && b.gender === "female") return "Sisters";
+    return "Brother & sister";
+  }
+  const parent = a.gender === "female" ? "Mother" : a.gender === "male" ? "Father" : "Parent";
+  const child = b.gender === "female" ? "daughter" : b.gender === "male" ? "son" : "child";
+  return `${parent} & ${child}`;
 }
 
 export function generationMap(index: GraphIndex): Map<string, number> {

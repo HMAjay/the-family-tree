@@ -11,8 +11,8 @@ export interface LaidOutNode {
 
 const NODE_W = 210;
 const NODE_H = 250;
-const GAP_X = 48;
-const GAP_Y = 120;
+const GAP_X = 88;
+const GAP_Y = 150;
 
 export function layoutTree(index: GraphIndex): LaidOutNode[] {
   const gens = generationMap(index);
