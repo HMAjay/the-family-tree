@@ -2,8 +2,11 @@
 
 import {
   Background,
+  Controls,
   ReactFlow,
   applyNodeChanges,
+  useNodesInitialized,
+  useReactFlow,
   type Edge,
   type Node,
   type NodeChange,
@@ -22,13 +25,17 @@ import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
 import { SaveTreeButton } from "@/components/save-tree-button";
 import { HoverCard } from "@/components/hover-card";
-import { TREE_FLOW_ZOOM, TreeZoomControls } from "@/components/tree-zoom-controls";
 import type { Person } from "@/lib/types";
 
 const nodeTypes = { person: PersonNode };
 const edgeTypes = { bond: BondEdge };
 const NODE_W = treeMetrics.NODE_W;
 const NODE_H = treeMetrics.NODE_H;
+const DEFAULT_EDGE_OPTIONS = {
+  type: "bond" as const,
+  style: { strokeWidth: 5, stroke: "#b8892d" },
+};
+const FIT_VIEW = { padding: 0.28, maxZoom: 1, minZoom: 0.08 } as const;
 
 function findDropTarget(dragged: Node, others: Node[]): Node | null {
   const d = { x: dragged.position.x, y: dragged.position.y, w: NODE_W, h: NODE_H };
@@ -357,26 +364,21 @@ export function FamilyTreeCanvas() {
       <div className="relative min-h-0 flex-1" style={{ minHeight: 480 }}>
         <ReactFlow
           className="h-full w-full"
-          defaultEdgeOptions={{
-            type: "bond",
-            style: { strokeWidth: 5, stroke: "#b8892d" },
-          }}
+          defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
           nodes={displayNodes}
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
-          fitView
-          fitViewOptions={TREE_FLOW_ZOOM.fitViewOptions}
-          minZoom={TREE_FLOW_ZOOM.minZoom}
-          maxZoom={TREE_FLOW_ZOOM.maxZoom}
+          fitViewOptions={FIT_VIEW}
+          minZoom={0.05}
+          maxZoom={4}
           zoomOnScroll
           zoomOnPinch
           zoomOnDoubleClick={false}
-          panOnScroll
-          panOnScrollSpeed={0.85}
-          zoomActivationKeyCode={["Control", "Meta"]}
+          panOnScroll={false}
           panOnDrag
+          preventScrolling
           nodesDraggable
           nodesConnectable={false}
           elementsSelectable
@@ -418,7 +420,8 @@ export function FamilyTreeCanvas() {
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#c4a35a" gap={32} size={1} />
-          <TreeZoomControls arrangeToken={arrangeToken} />
+          <Controls showInteractive={false} showFitView fitViewOptions={FIT_VIEW} />
+          <ViewportHelpers arrangeToken={arrangeToken} />
         </ReactFlow>
         {menu && (
           <NodeContextMenu
@@ -452,6 +455,42 @@ export function FamilyTreeCanvas() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+function ViewportHelpers({ arrangeToken }: { arrangeToken: number }) {
+  const { fitView } = useReactFlow();
+  const ready = useNodesInitialized();
+  const didInitialFit = useRef(false);
+
+  useEffect(() => {
+    if (!ready || didInitialFit.current) return;
+    didInitialFit.current = true;
+    const frame = window.requestAnimationFrame(() => {
+      void fitView({ ...FIT_VIEW, duration: 0 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready, fitView]);
+
+  useEffect(() => {
+    if (!arrangeToken || !ready) return;
+    const frame = window.requestAnimationFrame(() => {
+      void fitView({ ...FIT_VIEW, duration: 450 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [arrangeToken, fitView, ready]);
+
+  return (
+    <div className="absolute top-3 right-3 z-10">
+      <Button
+        size="sm"
+        variant="secondary"
+        className="rounded-full"
+        onClick={() => void fitView({ ...FIT_VIEW, duration: 500 })}
+      >
+        Center
+      </Button>
     </div>
   );
 }

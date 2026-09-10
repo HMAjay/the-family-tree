@@ -195,6 +195,29 @@
   border-radius: 12px;
   overflow: hidden;
 }
+.react-flow__controls-button {
+  width: 2rem !important;
+  height: 2rem !important;
+  border: none !important;
+  background: #fbf6ec !important;
+}
+.react-flow__controls-button:hover {
+  background: #ead9b8 !important;
+}
+.react-flow__controls-button svg {
+  max-width: 14px;
+  max-height: 14px;
+}
+@media (pointer: coarse) {
+  .react-flow__controls-button {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+  .react-flow__controls-button svg {
+    max-width: 18px;
+    max-height: 18px;
+  }
+}
 .react-flow__attribution {
   display: none;
 }
