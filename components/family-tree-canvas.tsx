@@ -2,11 +2,8 @@
 
 import {
   Background,
-  Controls,
   ReactFlow,
   applyNodeChanges,
-  useNodesInitialized,
-  useReactFlow,
   type Edge,
   type Node,
   type NodeChange,
@@ -25,6 +22,7 @@ import { layoutTree, treeMetrics } from "@/lib/layout";
 import { useFamilyStore } from "@/store/family-store";
 import { SaveTreeButton } from "@/components/save-tree-button";
 import { HoverCard } from "@/components/hover-card";
+import { TREE_FLOW_ZOOM, TreeZoomControls } from "@/components/tree-zoom-controls";
 import type { Person } from "@/lib/types";
 
 const nodeTypes = { person: PersonNode };
@@ -80,7 +78,10 @@ export function FamilyTreeCanvas() {
   const arrangeSeen = useRef(0);
   const nodesRef = useRef<Node[]>([]);
   const dragOrigin = useRef<{ id: string; position: { x: number; y: number } } | null>(null);
-  nodesRef.current = nodes;
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
 
   const index = useMemo(() => buildIndex(people, relationships), [people, relationships]);
   const layout = useMemo(() => layoutTree(index), [index]);
@@ -366,13 +367,15 @@ export function FamilyTreeCanvas() {
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           fitView
-          fitViewOptions={{ padding: 0.28, maxZoom: 1 }}
-          minZoom={0.05}
-          maxZoom={4}
+          fitViewOptions={TREE_FLOW_ZOOM.fitViewOptions}
+          minZoom={TREE_FLOW_ZOOM.minZoom}
+          maxZoom={TREE_FLOW_ZOOM.maxZoom}
           zoomOnScroll
           zoomOnPinch
           zoomOnDoubleClick={false}
-          panOnScroll={false}
+          panOnScroll
+          panOnScrollSpeed={0.85}
+          zoomActivationKeyCode={["Control", "Meta"]}
           panOnDrag
           nodesDraggable
           nodesConnectable={false}
@@ -415,8 +418,7 @@ export function FamilyTreeCanvas() {
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#c4a35a" gap={32} size={1} />
-          <Controls showInteractive={false} />
-          <CenterButton arrangeToken={arrangeToken} />
+          <TreeZoomControls arrangeToken={arrangeToken} />
         </ReactFlow>
         {menu && (
           <NodeContextMenu
@@ -450,30 +452,6 @@ export function FamilyTreeCanvas() {
           />
         )}
       </div>
-    </div>
-  );
-}
-
-function CenterButton({ arrangeToken }: { arrangeToken: number }) {
-  const { fitView } = useReactFlow();
-  const ready = useNodesInitialized();
-  useEffect(() => {
-    if (!arrangeToken || !ready) return;
-    const frame = window.requestAnimationFrame(() => {
-      fitView({ padding: 0.28, duration: 450, maxZoom: 1, minZoom: 0.08 });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [arrangeToken, fitView, ready]);
-  return (
-    <div className="absolute top-3 right-3 z-10">
-      <Button
-        size="sm"
-        variant="secondary"
-        className="rounded-full"
-        onClick={() => fitView({ padding: 0.28, duration: 500, maxZoom: 1, minZoom: 0.08 })}
-      >
-        Center
-      </Button>
     </div>
   );
 }

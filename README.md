@@ -17,3 +17,5 @@ Open [http://localhost:43217](http://localhost:43217).
 - **Undo** / **Redo** (Ctrl+Z / Ctrl+Shift+Z) reverse recent edits.
 
 Optional: set `SESSION_SECRET` in `.env.local` for signed cookies. Without it, a local development secret is used.
+
+Accounts and saved trees are stored in a JSON file. Locally that is `data/store.json`. On Vercel / AWS Lambda the app directory is read-only (`/var/task`), so the store is written under the OS temp folder instead. Set `DATA_DIR` to a writable persistent volume if you need accounts to survive deploys and cold starts.
